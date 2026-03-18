@@ -10,7 +10,7 @@ logger = settings.logging.getLogger("discord")
 
 
 class Seeding(commands.Cog):
-    """Cog for tournament seeding commands using AI (demo bracket)"""
+    """Cog for tournament seeding commands using AI (demo teams)"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -27,8 +27,8 @@ class Seeding(commands.Cog):
         demo_teams = [
             {"team_name": "Thrashers", "players": ["Alice", "Bob", "Charlie", "David", "Eve"]},
             {"team_name": "Crashers", "players": ["Frank", "Grace", "Hannah", "Isaac", "Jack"]},
-            {"team_name": "Bashers", "players": ["Karen", "Leo", "Mia", "Nina", "Owen"]},
-            {"team_name": "Trashers", "players": ["Paul", "Quinn", "Rita", "Steve", "Tina"]}
+            {"team_name": "Trashers", "players": ["Karen", "Leo", "Mia", "Nina", "Owen"]},
+            {"team_name": "Bashers", "players": ["Paul", "Quinn", "Rita", "Steve", "Tina"]}
         ]
 
         try:
@@ -38,24 +38,12 @@ class Seeding(commands.Cog):
             # Randomize bracket order
             random.shuffle(demo_teams)
 
-            # Pair teams into matchups
-            matchups = []
-            for i in range(0, len(demo_teams), 2):
-                if i + 1 < len(demo_teams):
-                    matchups.append({
-                        "match": f"{demo_teams[i]['team_name']} vs {demo_teams[i+1]['team_name']}",
-                        "teams": [demo_teams[i], demo_teams[i+1]]
-                    })
-                else:
-                    # Odd number of teams -> last team gets a bye
-                    matchups.append({
-                        "match": f"{demo_teams[i]['team_name']} has a bye",
-                        "teams": [demo_teams[i]]
-                    })
+            # Format result nicely
+            result = [{"team_name": t["team_name"], "players": t["players"]} for t in demo_teams]
 
-            # Send the formatted bracket
+            # Send the response
             await interaction.followup.send(
-                f"```json\n{json.dumps(matchups, indent=2)}\n```"
+                f"```json\n{json.dumps(result, indent=2)}\n```"
             )
 
         except Exception as e:
