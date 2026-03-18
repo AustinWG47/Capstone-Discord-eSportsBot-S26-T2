@@ -44,7 +44,7 @@ async def openAi_teamUp(players):
             {"role": "system", "content": settings.prompt},
             {"role": "user", "content": players}
         ],
-        temperature=0.7,
+        temperature=0,
         max_tokens= 1000,
         top_p= 0.95,
         frequency_penalty=0,
@@ -56,7 +56,7 @@ async def openAi_teamUp(players):
 
 
 async def get_generated_teams(response):
-    teams = {"t1": [], "t1": []}
+    teams = {"t1": [], "t2": []}
 
     #this function is based on the AI response structure
     #this can be modifed with different code structure
