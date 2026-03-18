@@ -99,7 +99,9 @@ async def main():
                     except Exception as ex:
                         logger.error(f"Error loading {cmd_file.stem} command: {ex}")
             
+            print(settings.GUILD_ID)
             guild = sys_client.get_guild(settings.GUILD_ID)
+            print(guild)
 
             # Copy the global slash commands to the specific guild
             sys_client.tree.copy_global_to(guild=guild)

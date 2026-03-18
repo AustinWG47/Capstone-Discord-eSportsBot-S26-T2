@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 # Add parent directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from controller.genetic_match_making import GeneticMatchMaking
+from controller.league_genetic_match_making import GeneticMatchMaking
 
 
 @pytest.fixture
@@ -418,7 +418,7 @@ async def test_run_matchmaking(matchmaker, sample_players):
         mock_decode.return_value = (team1, team2)
         
         # Call the method
-        result_team1, result_team2 = await matchmaker.run_matchmaking()
+        result_team1, result_team2 = await matchmaker.league_run_matchmaking()
         
         # Verify correct methods were called in sequence
         mock_fetch.assert_called_once()

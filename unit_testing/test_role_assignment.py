@@ -23,7 +23,7 @@ logger.warning = MagicMock()
 logger.info = MagicMock()
 
 # Now import the module we want to test
-from controller.genetic_match_making import GeneticMatchMaking
+from controller.league_genetic_match_making import GeneticMatchMaking
 # Patch logger
 GeneticMatchMaking.logger = logger
 

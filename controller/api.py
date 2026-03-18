@@ -24,7 +24,7 @@ class Api_Collection(commands.Cog):
     def cog_unload(self):
         self.fetch_all_players_details.cancel()
 
-    @tasks.loop(seconds=600)
+    @tasks.loop(seconds=15)
     async def fetch_all_players_details(self):
         db = Tournament_DB()
         #we pass here the game a hard coded

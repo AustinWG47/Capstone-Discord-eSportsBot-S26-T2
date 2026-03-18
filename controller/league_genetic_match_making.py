@@ -79,7 +79,7 @@ class GeneticMatchMaking:
         """Load players from the combined_player_data.json file"""
         try:
             # Import the function from match_making.py
-            from controller.match_making import get_random_players
+            from controller.league_match_making import get_random_players
             
             # Get random players with calculated tiers
             return get_random_players(count=count)
@@ -91,7 +91,7 @@ class GeneticMatchMaking:
         """Calculate the player's tier rating based on rank"""
         try:
             # Import the calculation function from match_making.py
-            from controller.match_making import calculate_player_tier
+            from controller.league_match_making import calculate_player_tier
             
             if 'calculated_tier' not in player and 'tier' in player:
                 player['calculated_tier'] = calculate_player_tier(player['tier'])
@@ -543,7 +543,7 @@ class GeneticMatchMaking:
             logger.error(f"Error saving matchmaking results: {ex}")
             return None
 
-    async def run_matchmaking(self, population_size=100, generations=200, team_size=5):
+    async def league_run_matchmaking(self, population_size=100, generations=200, team_size=5):
         """Run the entire matchmaking process"""
         # Fetch player data from database or JSON file
         players = await self.fetch_player_data()
@@ -627,7 +627,7 @@ async def main():
         print(f"{player.get('game_name', player.get('user_id'))}: {player.get('tier')} {tier_display}")
     
     # Run the matchmaking process
-    team1, team2 = await matchmaker.run_matchmaking(
+    team1, team2 = await matchmaker.league_run_matchmaking(
         population_size=100, 
         generations=200, 
         team_size=5 if len(players) >= 10 else len(players) // 2

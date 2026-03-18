@@ -1,7 +1,7 @@
 import discord
 import asyncio
 from config import settings
-from controller.genetic_match_making import GeneticMatchMaking
+from controller.league_genetic_match_making import GeneticMatchMaking
 
 logger = settings.logging.getLogger("discord")
 

@@ -262,7 +262,7 @@ class TeamDisplayController(commands.Cog):
                     return
                 
                 # Process the teams for role assignment
-                from controller.genetic_match_making import GeneticMatchMaking
+                from controller.league_genetic_match_making import GeneticMatchMaking
                 matchmaker = GeneticMatchMaking()
                 
                 # Calculate performance metrics for each player
@@ -541,7 +541,7 @@ class TeamDisplayController(commands.Cog):
                 return
             
             # Process the teams for role assignment
-            from controller.genetic_match_making import GeneticMatchMaking
+            from controller.league_genetic_match_making import GeneticMatchMaking
             matchmaker = GeneticMatchMaking()
             
             # Calculate performance metrics for each player
@@ -820,7 +820,7 @@ class TeamDisplayController(commands.Cog):
                 return
             
             # Process the teams for role assignment only if we have appropriate team sizes
-            from controller.genetic_match_making import GeneticMatchMaking
+            from controller.league_genetic_match_making import GeneticMatchMaking
             matchmaker = GeneticMatchMaking()
             
             # Calculate performance metrics for each player
@@ -876,7 +876,7 @@ class TeamDisplayController(commands.Cog):
                 # For image or both formats, generate the image
                 if format.lower() in ["image", "both"]:
                     # Assign roles to players (needed for image generation)
-                    from controller.genetic_match_making import GeneticMatchMaking
+                    from controller.league_genetic_match_making import GeneticMatchMaking
                     matchmaker = GeneticMatchMaking()
                     
                     # Assign roles if we have enough players
@@ -999,7 +999,7 @@ class TeamDisplayController(commands.Cog):
         
         # Determine roles for each player
         # We need to replicate the role assignment logic since we don't have access to the assigned_role values
-        from controller.genetic_match_making import GeneticMatchMaking
+        from controller.league_genetic_match_making import GeneticMatchMaking
         matchmaker = GeneticMatchMaking()
         
         # Assign roles if we have enough players
@@ -1115,7 +1115,7 @@ class TeamDisplayController(commands.Cog):
             str: Formatted role matchup text
         """
         # Make sure roles are assigned
-        from controller.genetic_match_making import GeneticMatchMaking
+        from controller.league_genetic_match_making import GeneticMatchMaking
         matchmaker = GeneticMatchMaking()
         
         # Assign roles if we have enough players

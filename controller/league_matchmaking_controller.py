@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 from config import settings
 from model.dbc_model import Tournament_DB, Game
-from controller.genetic_match_making import GeneticMatchMaking
+from controller.league_genetic_match_making import GeneticMatchMaking
 
 logger = settings.logging.getLogger("discord")
 
@@ -249,12 +249,12 @@ class MatchmakingController(commands.Cog):
             await interaction.response.send_message("Sorry, you don't have required permission to use this command",
                                                   ephemeral=True)
 
-    @app_commands.command(name="run_matchmaking", description="Run matchmaking with registered players")
+    @app_commands.command(name="run_league_matchmaking", description="Run League of Legends matchmaking with registered players")
     @app_commands.describe(
         players_per_game="Number of players per game (default: 10)",
         selection_method="How to select players who sit out: random, rank, or volunteer (default: random)"
     )
-    async def run_matchmaking(
+    async def league_run_matchmaking(
             self,
             interaction: discord.Interaction,
             players_per_game: int = 10,

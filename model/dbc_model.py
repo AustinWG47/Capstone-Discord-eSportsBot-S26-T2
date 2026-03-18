@@ -71,6 +71,7 @@ class Player(Tournament_DB):
             user_id bigint PRIMARY KEY,
             game_name text not null,
             game_id text,
+            player_name text not null,
             tag_id text text not null,
             isAdmin integer not null default 0,
             mvp_count integer not null default 0,
@@ -102,13 +103,13 @@ class Player(Tournament_DB):
             logger.error(f"Error executing player query: {ex}")
             return False
 
-    def register(self, interaction, gamename, tagid):
-        register_query = "insert into player(user_id, game_name, tag_id) values(?, ?, ?)"
+    def register(self, interaction, gamename, playername, tagid):
+        register_query = "insert into player(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
 
         try:
             uniq_user_id = interaction.user.id
             if uniq_user_id:
-                self.cursor.execute(register_query, (uniq_user_id, gamename, tagid))
+                self.cursor.execute(register_query, (uniq_user_id, gamename, playername, tagid))
                 self.connection.commit()
             else:
                 logger.error(f"Registration ahs failed because of Non user id")
@@ -179,7 +180,7 @@ class Player(Tournament_DB):
             logger.error(f"isMemberExist has failed with error {ex}")
 
     def get_all_player(self):
-        query = "select user_id, game_name, tag_id from player"
+        query = "select user_id, player_name, game_name, tag_id from player"
         try:
             self.cursor.execute(query)
             return self.cursor.fetchall()
@@ -284,11 +285,11 @@ class Player(Tournament_DB):
 class Game(Tournament_DB):
     
     def createTable(self):
-
         game_table_query = """
             CREATE TABLE IF NOT EXISTS game (
             user_id bigint not null,
             game_name text not null,
+            player_name text not null,
             tier text,
             rank text,
             role text,
@@ -322,16 +323,12 @@ class Game(Tournament_DB):
                 # Check if record already exists
                 self.cursor.execute("SELECT COUNT(*) FROM game WHERE user_id = ?", (uniq_user_id,))
                 exists = self.cursor.fetchone()[0] > 0
-                
                 if exists:
-                    # Update existing record
                     update_query = "UPDATE game SET role = ? WHERE user_id = ?"
                     self.cursor.execute(update_query, (pref, uniq_user_id))
                 else:
-                    # Insert new record
                     insert_query = "INSERT INTO game(user_id, game_name, role) VALUES(?, ?, ?)"
                     self.cursor.execute(insert_query, (uniq_user_id, game_name, pref))
-                
                 self.connection.commit()
             else:
                 logger.error(f"update_pref has failed because of Non user id")
@@ -339,22 +336,17 @@ class Game(Tournament_DB):
             logger.error(f"update_pref has failed with error {ex}")
 
     def update_role(self, interaction, role):
-        register_query = "insert into game(user_id, game_name, role) values(?, ?, ?)"
         role = json.dumps(role)
         try:
             uniq_user_id = interaction.user.id
             if uniq_user_id:
-                # Get player's game_name from the player table
                 self.cursor.execute("SELECT game_name FROM player WHERE user_id = ?", (uniq_user_id,))
                 player_data = self.cursor.fetchone()
-                
                 if not player_data:
-                    # If player not found, use a default game name
                     game_name = "League of Legends"
                 else:
                     game_name = player_data[0]
-                
-                self.cursor.execute(register_query, (uniq_user_id, game_name, role))
+                self.cursor.execute("INSERT INTO game(user_id, game_name, role) VALUES(?, ?, ?)", (uniq_user_id, game_name, role))
                 self.connection.commit()
             else:
                 logger.error(f"update_role has failed because of Non user id")
@@ -366,14 +358,10 @@ class Game(Tournament_DB):
         manual_tier = self.calculate_manual_tier(tier, rank)
         
         try:
-            # First, fetch the player's game_name from the player table
-            self.cursor.execute("SELECT game_name FROM player WHERE user_id = ?", (player_id,))
+            self.cursor.execute("SELECT player_name FROM player WHERE user_id = ?", (player_id,))
             player_data = self.cursor.fetchone()
-            
             if player_data and player_data[0]:
                 game_name = player_data[0]
-                
-                # Try to update existing entry first
                 update_query = """
                     UPDATE game 
                     SET tier = ?, rank = ?, wins = ?, losses = ?, manual_tier = ?
@@ -382,19 +370,15 @@ class Game(Tournament_DB):
                     )
                 """
                 self.cursor.execute(update_query, (tier, rank, wins, losses, manual_tier, player_id, player_id))
-                
-                # If no rows were updated, insert a new record
                 if self.cursor.rowcount == 0:
                     register_query = """
-                        INSERT INTO Game(user_id, game_name, tier, rank, wins, losses, manual_tier) 
+                        INSERT INTO game(user_id, game_name, tier, rank, wins, losses, manual_tier) 
                         VALUES(?, ?, ?, ?, ?, ?, ?)
                     """
                     self.cursor.execute(register_query, (player_id, game_name, tier, rank, wins, losses, manual_tier))
-                
                 self.connection.commit()
             else:
                 logger.error(f"update_player_API_info could not find game_name for user_id {player_id}")
-            
         except Exception as ex:
             logger.error(f"update_player_API_info has failed with error {ex}")
     
@@ -402,29 +386,28 @@ class Game(Tournament_DB):
     
     def get_manual_tier(self, player_id):
         """Get a player's manual tier value"""
-        query = """
-            SELECT manual_tier, tier, rank
-            FROM game
-            WHERE user_id = ?
-            ORDER BY game_date DESC
-            LIMIT 1
-        """
-        
         try:
-            self.cursor.execute(query, (player_id,))
-            result = self.cursor.fetchone()
-            
-            if result:
-                manual_tier, tier, rank = result
-                
-                # If manual_tier is None, calculate it based on tier and rank
-                if manual_tier is None and tier:
-                    calculated_value = self.calculate_manual_tier(tier, rank)
-                    self.update_manual_tier(player_id, calculated_value)
-                    return calculated_value
-                    
-                return manual_tier
-                
+            self.cursor.execute("SELECT game_name FROM player WHERE user_id = ?", (player_id,))
+            player_data = self.cursor.fetchone()
+            if player_data and player_data[0]:
+                game_name = player_data[0]
+                query = """
+                    SELECT manual_tier, tier, rank
+                    FROM game
+                    WHERE user_id = ?
+                    ORDER BY game_date DESC
+                    LIMIT 1
+                """
+                self.cursor.execute(query, (player_id,))
+                result = self.cursor.fetchone()
+                if result:
+                    manual_tier, tier, rank = result
+                    if manual_tier is None and tier:
+                        calculated_value = self.calculate_manual_tier(tier, rank)
+                        self.update_manual_tier(player_id, calculated_value)
+                        return calculated_value
+                    return manual_tier
+                return None
             return None
         except Exception as ex:
             logger.error(f"get_manual_tier failed with error {ex}")
@@ -433,31 +416,33 @@ class Game(Tournament_DB):
     def update_manual_tier(self, player_id, manual_tier):
         """Update a player's manual tier value directly"""
         # Check if player has a game record
-        query = "SELECT COUNT(*) FROM game WHERE user_id = ?"
-        
         try:
-            self.cursor.execute(query, (player_id,))
-            count = self.cursor.fetchone()[0]
-            
-            if count > 0:
-                # Update existing record with the manual tier
-                update_query = """
-                    UPDATE game 
-                    SET manual_tier = ?
-                    WHERE user_id = ? AND game_date = (
-                        SELECT MAX(game_date) FROM game WHERE user_id = ?
-                    )
-                """
-                self.cursor.execute(update_query, (manual_tier, player_id, player_id))
-                self.connection.commit()
-                return True
+            self.cursor.execute("SELECT game_name FROM player WHERE user_id = ?", (player_id,))
+            player_data = self.cursor.fetchone()
+            if player_data and player_data[0]:
+                game_name = player_data[0]
+                query = "SELECT COUNT(*) FROM game WHERE user_id = ?"
+                self.cursor.execute(query, (player_id,))
+                count = self.cursor.fetchone()[0]
+                if count > 0:
+                    update_query = """
+                        UPDATE game 
+                        SET manual_tier = ?
+                        WHERE user_id = ? AND game_date = (
+                            SELECT MAX(game_date) FROM game WHERE user_id = ?
+                        )
+                    """
+                    self.cursor.execute(update_query, (manual_tier, player_id, player_id))
+                    self.connection.commit()
+                    return True
+                else:
+                    return False
             else:
-                # Cannot set manual tier if no game record exists
                 return False
-                
         except Exception as ex:
             logger.error(f"update_manual_tier failed with error {ex}")
             return False
+                # No per-game table selection needed after revert
             
     def update_player_tier(self, player_id, tier, rank):
         """Update a player's tier and rank in the Game table"""
