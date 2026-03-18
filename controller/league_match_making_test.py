@@ -8,8 +8,8 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 # Import match_making module
-from controller import match_making
-from controller.match_making import main as normal_main, get_random_players, set_test_players
+from controller import league_match_making
+from controller.league_match_making import main as normal_main, get_random_players, set_test_players
 
 # For colored output
 try:
@@ -90,8 +90,8 @@ async def batch_test(iterations=5):
                 team2_players = [item["assigned_to"] for item in t2 if "assigned_to" in item]
                 
                 # Calculate team performances
-                t1_perf = match_making.teamPerformance(team1_players)
-                t2_perf = match_making.teamPerformance(team2_players)
+                t1_perf = league_match_making.teamPerformance(team1_players)
+                t2_perf = league_match_making.teamPerformance(team2_players)
                 normal_diff = abs(t1_perf - t2_perf)
                 normal_scores[rank].append(normal_diff)
     

@@ -9,7 +9,7 @@ from unittest.mock import patch, MagicMock, mock_open
 # Add parent directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from controller.match_making import (
+from controller.league_match_making import (
     load_player_data, calculate_player_tier, get_random_players, 
     intialSortingPlayer, performance, relativePerformance, teamPerformance, 
     possible_assighn_role, isPlayerRoleprefered, assignPlayer_toTeam, 
@@ -416,7 +416,7 @@ def test_set_test_players():
     set_test_players(test_players)
     
     # Import the module to check if the global variable was set
-    import controller.match_making as mm
+    import controller.league_match_making as mm
     assert mm._test_players == test_players
     
     # Reset test players

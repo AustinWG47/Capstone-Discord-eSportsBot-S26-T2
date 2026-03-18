@@ -56,7 +56,7 @@ class PlayerManagement(commands.Cog):
 
                 # Create an embed to display players
                 embed = discord.Embed(
-                    title="League of Legends Players",
+                    title="Registered Players",
                     color=discord.Color.blue(),
                     description=f"Total Players: {len(all_players)}"
                 )
@@ -166,7 +166,7 @@ class PlayerManagement(commands.Cog):
                         # Create a new embed every 15 players
                         if i % 15 == 0:
                             current_embed = discord.Embed(
-                                title=f"League of Legends Players (Continued {i // 15 + 1})",
+                                title=f"Registered Players (Continued {i // 15 + 1})",
                                 color=discord.Color.blue()
                             )
                             remaining_embeds.append(current_embed)
@@ -278,7 +278,7 @@ class PlayerManagement(commands.Cog):
             db = Tournament_DB()
             try:
                 # Find player ID from name
-                db.cursor.execute("SELECT user_id FROM player WHERE game_name LIKE ?", (f"%{player_name}%",))
+                db.cursor.execute("SELECT user_id FROM player WHERE player_name LIKE ?", (f"%{player_name}%",))
                 result = db.cursor.fetchone()
 
                 if not result:
@@ -288,9 +288,9 @@ class PlayerManagement(commands.Cog):
                 player_id = result[0]
 
                 # Get player details
-                db.cursor.execute("SELECT game_name, tag_id FROM player WHERE user_id = ?", (player_id,))
+                db.cursor.execute("SELECT game_name, tag_id, player_name FROM player WHERE user_id = ?", (player_id,))
                 player_data = db.cursor.fetchone()
-                game_name, tag_id = player_data
+                game_name, tag_id, player_name = player_data
 
                 # Get player stats
                 db.cursor.execute(

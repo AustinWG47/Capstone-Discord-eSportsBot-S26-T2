@@ -27,6 +27,15 @@ class RegisterModal(Modal, title="Registration"):
         )
         self.add_item(self.game_name)
 
+        self.player_name = TextInput(
+            style=discord.TextStyle.long,
+            label="Player Name:",
+            max_length=500,
+            required=True,
+            placeholder="Player Name"
+        )
+        self.add_item(self.player_name)
+
         self.Tag_id = TextInput(
             style=discord.TextStyle.short,
             label="Your Tag ID",
@@ -45,11 +54,11 @@ class RegisterModal(Modal, title="Registration"):
         logger.info(f"game name {Fore.RED}{self.game_name.value}{Style.RESET_ALL} and user id is {Fore.RED}{self.Tag_id.value}{Style.RESET_ALL}")
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
-                                      tagid=self.Tag_id.value.strip())
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), playername=self.player_name.value.strip(),
+                                      tagid=self.Tag_id.value.strip(),)
             db.close_db()
             embed = discord.Embed(title="Checkin Summary",
-                                  description=f"Game Name: {self.game_name.value}\nTag ID: {self.Tag_id.value}",
+                                  description=f"Game Name: {self.game_name.value}\nPlayer Name: {self.player_name.value}\nTag ID: {self.Tag_id.value}",
                                   color=discord.Color.yellow())
             embed.set_author(name=self.user)
             await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed)
@@ -180,11 +189,11 @@ class Checkin_RegisterModal(Modal, title="Registration"):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),playername=self.player_name.value.strip(),
                                       tagid=self.Tag_id.value.strip())
             db.close_db()
             embed = discord.Embed(title="Checkin Summary",
-                                  description=f"Game Name: {self.game_name.value}\n Tag ID:{self.Tag_id.value}",
+                                  description=f"Game Name: {self.game_name.value}\n Player Name: {self.player_name.value()}\n Tag ID: {self.Tag_id.value}",
                                   color=discord.Color.yellow())
             embed.set_author(name=self.user)
 

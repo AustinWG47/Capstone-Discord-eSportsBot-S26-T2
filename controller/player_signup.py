@@ -7,7 +7,7 @@ class PlayerSignUp(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="register", description="register players")
+    @app_commands.command(name="register", description="register yourself as a player")
     async def player_signup(self, interaction : discord.Interaction):
         await SharedLogic.execute_signup_model(interaction)
 

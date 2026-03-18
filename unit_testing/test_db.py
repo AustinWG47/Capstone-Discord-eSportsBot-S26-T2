@@ -9,7 +9,7 @@ def db_instance():
     db = Tournament_DB(db_name=":memory:")
     yield db
     db.close_db()
-
+0
 
 def test_create_player_table(db_instance):
     # Instantiate Player and share the same connection and cursor from the fixture.
