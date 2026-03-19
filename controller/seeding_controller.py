@@ -1,16 +1,15 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import random
 import json
+import random
 from config import settings
 import logging
 
 logger = settings.logging.getLogger("discord")
 
-
 class Seeding(commands.Cog):
-    """Cog for tournament seeding commands using AI (demo teams)"""
+    """Cog for tournament seeding commands (demo teams)"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -32,26 +31,20 @@ class Seeding(commands.Cog):
         ]
 
         try:
-            # Defer the response to avoid timeout
+            # Defer response to avoid timeout
             await interaction.response.defer()
 
-            # Randomize bracket order
+            # Randomize the bracket
             random.shuffle(demo_teams)
 
-            # Format result nicely
-            result = [{"team_name": t["team_name"], "players": t["players"]} for t in demo_teams]
-
-            # Send the response
+            # Send formatted JSON
             await interaction.followup.send(
-                f"```json\n{json.dumps(result, indent=2)}\n```"
+                f"```json\n{json.dumps(demo_teams, indent=2)}\n```"
             )
 
         except Exception as e:
             logger.error(f"Seeding error: {e}")
-            await interaction.followup.send(
-                "❌ Error generating teams. Check logs."
-            )
-
+            await interaction.followup.send("❌ Error generating demo teams. Check logs.")
 
 # -------------------------------
 # Required setup function

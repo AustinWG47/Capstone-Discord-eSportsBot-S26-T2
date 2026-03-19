@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import commands
 import asyncio
@@ -37,7 +36,6 @@ async def main():
     Game.createTable(db)
 
     # Import and create Matches, MVP_Votes, and Player_game_info tables
-    
     from model.dbc_model import Matches, MVP_Votes, Player_game_info
     Matches.createTable(db)
     MVP_Votes.createTable(db)
@@ -96,13 +94,19 @@ async def main():
                         logger.info(f"{cmd_file.stem} command is already loaded")
                     except Exception as ex:
                         logger.error(f"Error loading {cmd_file.stem} command: {ex}")
+
             print(settings.GUILD_ID)
             guild = sys_client.get_guild(settings.GUILD_ID)
             print(guild)
             
-            # Copy the global slash commands to the specific guild
-            sys_client.tree.copy_global_to(guild=guild)
-            await sys_client.tree.sync(guild=guild)
+            # -------------------------------
+            # Sync slash commands for all guilds after cogs are loaded
+            # -------------------------------
+            for guild in sys_client.guilds:
+                sys_client.tree.copy_global_to(guild=guild)
+                await sys_client.tree.sync(guild=guild)
+                logger.info(f"Slash commands synced for guild {guild.id}")
+
             # mark initilization as complete
             sys_client.is_fully_initialized = True
             
