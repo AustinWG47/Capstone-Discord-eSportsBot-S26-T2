@@ -425,8 +425,8 @@ def test_matches_get_next_match_id(db_instance):
     
     # Simulate match creation
     matches.cursor.execute(
-        "INSERT INTO Matches (match_num, user_id, teamId) VALUES (?, ?, ?)",
-        (1, 101, f"match_{match_id}")
+        "INSERT INTO Matches (match_num, user_id, teamId, game_name) VALUES (?, ?, ?, ?)",
+        (1, 101, f"match_{match_id}", "League of Legends")
     )
     matches.connection.commit()
     
@@ -436,8 +436,8 @@ def test_matches_get_next_match_id(db_instance):
     
     # Skip ahead to simulate matches with higher IDs
     matches.cursor.execute(
-        "INSERT INTO Matches (match_num, user_id, teamId) VALUES (?, ?, ?)",
-        (1, 102, "match_5")
+        "INSERT INTO Matches (match_num, user_id, teamId, game_name) VALUES (?, ?, ?, ?)",
+        (1, 102, "match_5", "League of Legends")
     )
     matches.connection.commit()
     

@@ -368,7 +368,7 @@ class MVPVotingController(commands.Cog):
                 
                 # Get player name
                 self.db.cursor.execute(
-                    "SELECT game_name FROM player WHERE user_id = ?",
+                    "SELECT player_name FROM player WHERE user_id = ?",
                     (winner_id,)
                 )
                 name_result = self.db.cursor.fetchone()
@@ -443,7 +443,7 @@ class MVPVotingController(commands.Cog):
         try:
             # Find the player by name
             self.db.cursor.execute(
-                "SELECT user_id, game_name, mvp_count FROM player WHERE game_name LIKE ?",
+                "SELECT user_id, player_name, mvp_count FROM player WHERE player_name LIKE ?",
                 (f"%{player_name}%",)
             )
             player_matches = self.db.cursor.fetchall()
@@ -566,7 +566,7 @@ class MVPVotingController(commands.Cog):
         try:
             self.db.cursor.execute(
                 """
-                SELECT m.user_id, p.game_name 
+                SELECT m.user_id, p.player_name 
                 FROM Matches m 
                 JOIN player p ON m.user_id = p.user_id 
                 WHERE m.teamId = ? AND m.teamUp = ?
@@ -592,10 +592,10 @@ class MVPVotingController(commands.Cog):
         try:
             self.db.cursor.execute(
                 """
-                SELECT p.user_id, p.game_name 
+                SELECT p.user_id, p.player_name 
                 FROM player p 
                 JOIN Matches m ON p.user_id = m.user_id 
-                WHERE m.teamId = ? AND m.teamUp = ? AND p.game_name LIKE ?
+                WHERE m.teamId = ? AND m.teamUp = ? AND p.player_name LIKE ?
                 """,
                 (match_id, winning_team, f"%{player_name}%")
             )

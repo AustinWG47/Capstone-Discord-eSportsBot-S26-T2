@@ -522,19 +522,19 @@ class GeneticMatchMaking:
                 user_id = player.get('user_id')
                 if user_id:
                     query = """
-                        INSERT INTO Matches(user_id, teamUp, teamId) 
-                        VALUES(?, ?, ?)
+                        INSERT INTO Matches(user_id, teamUp, teamId, game_name) 
+                        VALUES(?, ?, ?, ?)
                     """
-                    self.db.cursor.execute(query, (user_id, "team1", team_id))
+                    self.db.cursor.execute(query, (user_id, "team1", team_id, "League of Legends"))
             
             for player in team2:
                 user_id = player.get('user_id')
                 if user_id:
                     query = """
-                        INSERT INTO Matches(user_id, teamUp, teamId) 
-                        VALUES(?, ?, ?)
+                        INSERT INTO Matches(user_id, teamUp, teamId, game_name) 
+                        VALUES(?, ?, ?, ?)
                     """
-                    self.db.cursor.execute(query, (user_id, "team2", team_id))
+                    self.db.cursor.execute(query, (user_id, "team2", team_id, "League of Legends"))
                     
             self.db.connection.commit()
             logger.info(f"Saved matchmaking results with team ID: {team_id}")

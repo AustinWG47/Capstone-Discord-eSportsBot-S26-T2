@@ -230,8 +230,8 @@ class MatchmakingController(commands.Cog):
                 for player in volunteers:
                     user_id = player.get('user_id')
                     if user_id:
-                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
-                        db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num))
+                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
+                        db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num, "League of Legends"))
 
                 db.connection.commit()
                 db.close_db()
@@ -478,14 +478,14 @@ class MatchmakingController(commands.Cog):
                     for player in team1:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team1", match_id, match_num))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team1", match_id, match_num, "League of Legends"))
 
                     for player in team2:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team2", match_id, match_num))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team2", match_id, match_num, "League of Legends"))
 
                     # Calculate team metrics
                     team1_perf = matchmaker.team_performance(team1)
@@ -647,8 +647,8 @@ class MatchmakingController(commands.Cog):
                     for player in participation_players:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num) VALUES(?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num, "League of Legends"))
 
                 # Commit all changes to database
                 db.connection.commit()

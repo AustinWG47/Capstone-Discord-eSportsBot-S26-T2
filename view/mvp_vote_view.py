@@ -115,7 +115,7 @@ def create_mvp_results_embed(match_id, vote_results, db, title="MVP Voting Resul
         
         # Get the winner's name
         db.cursor.execute(
-            "SELECT game_name FROM player WHERE user_id = ?",
+            "SELECT player_name FROM player WHERE user_id = ?",
             (winner_id,)
         )
         winner_name_result = db.cursor.fetchone()
@@ -131,7 +131,7 @@ def create_mvp_results_embed(match_id, vote_results, db, title="MVP Voting Resul
         results_text = ""
         for player_id, votes in vote_results:
             db.cursor.execute(
-                "SELECT game_name FROM player WHERE user_id = ?",
+                "SELECT player_name FROM player WHERE user_id = ?",
                 (player_id,)
             )
             player_name_result = db.cursor.fetchone()
