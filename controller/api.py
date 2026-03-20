@@ -62,7 +62,6 @@ class Api_Collection(commands.Cog):
 
         url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_id}?api_key={settings.API_KEY}'
         url_puuid = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-puuid"
-        url_summonId = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner"
         try: 
             # response = requests.get(url, headers=headers)
             response = requests.get(url=url, headers=headers)
