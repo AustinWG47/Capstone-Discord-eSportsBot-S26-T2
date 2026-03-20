@@ -105,13 +105,21 @@ class Player(Tournament_DB):
 
     def register(self, interaction, gamename, playername, tagid):
         player_register_query = "insert into player(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
-        game_register_query = "insert into league_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
+        league_register_query = "insert into league_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
+        mr_register_query = "insert into mr_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
+        cod_register_query = "insert into cod_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
 
         try:
             uniq_user_id = interaction.user.id
             if uniq_user_id:
                 self.cursor.execute(player_register_query, (uniq_user_id, gamename, playername, tagid))
-                self.cursor.execute(game_register_query, (uniq_user_id, gamename, playername, tagid))
+
+                if gamename.lower() == "league of legends":
+                    self.cursor.execute(league_register_query, (uniq_user_id, gamename, playername, tagid))
+                if gamename.lower() == "marvel rivals":
+                    self.cursor.execute(mr_register_query, (uniq_user_id, gamename, playername, tagid))
+                if gamename.lower() == "call of duty":
+                    self.cursor.execute(cod_register_query, (uniq_user_id, gamename, playername, tagid))
                 self.connection.commit()
             else:
                 logger.error(f"Registration ahs failed because of Non user id")

@@ -12,63 +12,105 @@ init(autoreset=True)
 
 logger = settings.logging.getLogger("discord")
 
-
-class RegisterModal(Modal, title="Registration"):
-    def __init__(self, timeout: int = 550):
-        super().__init__()
-        self.timeout = timeout
-        self.viewStart_time = time.time()
-        self.game_name = TextInput(
-            style=discord.TextStyle.long,
-            label="Game Name:",
-            max_length=500,
-            required=True,
-            placeholder="Game Name"
+class GameSelect(discord.ui.Select):
+    def __init__(self):
+        super().__init__(
+            placeholder="Select a game",
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(label="Marvel Rivals"),
+                discord.SelectOption(label="Call Of Duty"),
+                discord.SelectOption(label="League Of Legends"),
+            ]
         )
-        self.add_item(self.game_name)
 
-        self.player_name = TextInput(
-            style=discord.TextStyle.long,
-            label="Player Name:",
-            max_length=500,
+    async def callback(self, interaction: discord.Interaction):
+        selected_game = self.values[0]
+        await interaction.response.send_modal(RegisterModal(selected_game))
+
+class GameSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(GameSelect())
+
+
+class RegisterModal(discord.ui.Modal, title="Registration"):
+    def __init__(self, game_name: str, timeout: int = 550):
+        super().__init__()
+        self.game_name = game_name  # string, no .value
+
+        # Player Name input
+        self.player_name = discord.ui.TextInput(
+            style=discord.TextStyle.short,
+            label="Player Name",
             required=True,
-            placeholder="Player Name"
+            placeholder="Enter your player name"
         )
         self.add_item(self.player_name)
 
-        self.Tag_id = TextInput(
+        # Tag ID input
+        self.tag_id = discord.ui.TextInput(
             style=discord.TextStyle.short,
             label="Your Tag ID",
             required=True,
-            placeholder="Tag ID"
+            placeholder="Enter your tag ID"
         )
-        self.add_item(self.Tag_id)
+        self.add_item(self.tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
-        """ this has a summary of checkin submission
-            info:
-                summary will be send to feedback channel
-            Args:
-                discord interaction (interaction: discord.Interaction)
-        """
-        logger.info(f"game name {Fore.RED}{self.game_name.value}{Style.RESET_ALL} and user id is {Fore.RED}{self.Tag_id.value}{Style.RESET_ALL}")
+        """Handles the modal submission and database registration."""
         try:
+            # Logging for debug
+            logger.info(
+                f"Game name {Fore.RED}{self.game_name}{Style.RESET_ALL} "
+                f"and user id {Fore.RED}{self.tag_id.value.strip()}{Style.RESET_ALL}"
+            )
+
+            # Register player in database
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(), playername=self.player_name.value.strip(),
-                                      tagid=self.Tag_id.value.strip(),)
+            dbc_model.Player.register(
+                db,
+                interaction=interaction,
+                gamename=self.game_name,
+                playername=self.player_name.value.strip(),
+                tagid=self.tag_id.value.strip()
+            )
             db.close_db()
-            embed = discord.Embed(title="Checkin Summary",
-                                  description=f"Game Name: {self.game_name.value}\nPlayer Name: {self.player_name.value}\nTag ID: {self.Tag_id.value}",
-                                  color=discord.Color.yellow())
-            embed.set_author(name=self.user)
-            await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed)
+
+            # Create a summary embed
+            embed = discord.Embed(
+                title="Check-in Summary",
+                description=(
+                    f"**Game Name:** {self.game_name}\n"
+                    f"**Player Name:** {self.player_name.value.strip()}\n"
+                    f"**Tag ID:** {self.tag_id.value.strip()}"
+                ),
+                color=discord.Color.yellow()
+            )
+            embed.set_author(name=str(interaction.user))
+
+            # Send response to user
+            await interaction.response.send_message(
+                f"{interaction.user.mention}, you have completed registration.",
+                embed=embed,
+                ephemeral=False
+            )
 
         except Exception as ex:
-            print(f"it faild on {ex}")
+            logger.error(f"Registration failed: {ex}")
+            await interaction.response.send_message(
+                "An error occurred during registration. Please try again.",
+                ephemeral=True
+            )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
+        logger.error(f"Modal error: {error}")
         traceback.print_tb(error.__traceback__)
-        return await super().on_submit(interaction)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "An unexpected error occurred.", ephemeral=True
+            )
 
 
 class PreferenceSelect(discord.ui.Select):
@@ -189,15 +231,15 @@ class Checkin_RegisterModal(Modal, title="Registration"):
         remaining_time = self.timeout - (time.time() - self.viewStart_time)
         try:
             db = dbc_model.Tournament_DB()
-            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name.value.strip(),playername=self.player_name.value.strip(),
+            dbc_model.Player.register(db, interaction=interaction, gamename=self.game_name,playername=self.player_name.value.strip(),
                                       tagid=self.Tag_id.value.strip())
             db.close_db()
             embed = discord.Embed(title="Checkin Summary",
-                                  description=f"Game Name: {self.game_name.value}\n Player Name: {self.player_name.value()}\n Tag ID: {self.Tag_id.value}",
+                                  description=f"Game Name: {self.game_name}\n Player Name: {self.player_name.value()}\n Tag ID: {self.Tag_id.value}",
                                   color=discord.Color.yellow())
             embed.set_author(name=self.user)
 
-            await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=True)
+            await interaction.response.send_message(f"{self.user}, you have completed registration", ephemeral=False, embed=embed)
 
             role_pref_view = PlayerPrefRole()
             # await interaction.response.send_message(f"{self.user}, you have completed registration", embed=embed, ephemeral=True)
