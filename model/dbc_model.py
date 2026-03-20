@@ -104,12 +104,14 @@ class Player(Tournament_DB):
             return False
 
     def register(self, interaction, gamename, playername, tagid):
-        register_query = "insert into player(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
+        player_register_query = "insert into player(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
+        game_register_query = "insert into game(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
 
         try:
             uniq_user_id = interaction.user.id
             if uniq_user_id:
-                self.cursor.execute(register_query, (uniq_user_id, gamename, playername, tagid))
+                self.cursor.execute(player_register_query, (uniq_user_id, gamename, playername, tagid))
+                self.cursor.execute(game_register_query, (uniq_user_id, gamename, playername, tagid))
                 self.connection.commit()
             else:
                 logger.error(f"Registration ahs failed because of Non user id")
@@ -180,7 +182,7 @@ class Player(Tournament_DB):
             logger.error(f"isMemberExist has failed with error {ex}")
 
     def get_all_player(self):
-        query = "select user_id, player_name, game_name, tag_id from player"
+        query = "select user_id, player_name, tag_id, game_name from player"
         try:
             self.cursor.execute(query)
             return self.cursor.fetchall()
@@ -290,13 +292,14 @@ class Game(Tournament_DB):
             user_id bigint not null,
             game_name text not null,
             player_name text not null,
+            tag_id text text not null,
             tier text,
             rank text,
             role text,
             wins integer,
             losses integer,
             manual_tier float DEFAULT NULL,
-            wr float generated always as (wins * 1.0 / (wins + losses)) stored,
+            wr float generated always as (wins * 1.0 / (wins + losses)*100) stored,
             game_date text default (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
             FOREIGN KEY (game_name) REFERENCES player (game_name) ON DELETE CASCADE

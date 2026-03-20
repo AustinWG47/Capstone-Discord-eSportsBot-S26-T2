@@ -4,6 +4,7 @@ from config import settings
 from model.dbc_model import Tournament_DB ,Player, Game
 import requests
 from colorama import Fore, Style, init
+import sqlite3
 
 # Initialize colorama
 init(autoreset=True)
@@ -60,7 +61,7 @@ class Api_Collection(commands.Cog):
         headers = {'X-Riot-Token': settings.API_KEY}
 
         url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_id}?api_key={settings.API_KEY}'
-        url_puuid = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid"
+        url_puuid = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-puuid"
         url_summonId = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner"
         try: 
             # response = requests.get(url, headers=headers)
@@ -69,24 +70,26 @@ class Api_Collection(commands.Cog):
             if response.status_code == 200:
                 account_info = response.json()
                 puuid = account_info['puuid']
+                print(f"the puuid for player {game_name} is: {Fore.GREEN}{puuid}{Style.RESET_ALL}")   
 
                 if puuid is not None:
                     response = requests.get(f"{url_puuid}/{puuid}?api_key={settings.API_KEY}", headers=headers)
                     if response.status_code==200:
                         result_format = response.json()
-                        summoner_id = result_format['id']
+                        if result_format:
+                            print(f"the player {game_name} rank is: {Fore.GREEN}{result_format[0]['tier']} {result_format[0]['rank']}{Style.RESET_ALL}")
+                            return result_format
 
-                        if summoner_id is not None:
-                            response = requests.get(f"{url_summonId}/{summoner_id}?api_key={settings.API_KEY}", headers=headers)
-                            return response.json()
                     else:
                         logger.info(f"not result for user puuid {Fore.RED}{puuid}{Style.RESET_ALL} and url: {url_puuid}")
                         return
             else:
                 print(f"not result for user tag_id: {Fore.RED}{tag_id}{Style.RESET_ALL} and url: {url}")
+                logger.info(f"Response status code: {response.status_code}")
                 return
         except Exception as ex:
-            logger.info(f"the request to get user puuid is failed")
+            logger.info(f"the request to get user puuid is failed: {ex}")
+            logger.info(f"Response status code: {response.status_code}")
 
     
     @commands.Cog.listener()

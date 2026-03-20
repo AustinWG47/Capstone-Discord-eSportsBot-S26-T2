@@ -62,7 +62,7 @@ class PlayerManagement(commands.Cog):
                 )
 
                 for i, player in enumerate(all_players):
-                    user_id, game_name, tag_id = player
+                    user_id, player_name, tag_id, game_name = player
 
                     # Try to get player stats from game table
                     try:
@@ -134,7 +134,7 @@ class PlayerManagement(commands.Cog):
                             # Add player to embed (up to 15 players per embed)
                             if i < 15:
                                 embed.add_field(
-                                    name=f"{game_name}",
+                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
                                     value=f"**ID:** {tag_id}\n{stats}\n**Roles:** {role_str}",
                                     inline=True
                                 )
@@ -142,7 +142,7 @@ class PlayerManagement(commands.Cog):
                             # Fallback if no game data exists
                             if i < 15:
                                 embed.add_field(
-                                    name=f"{game_name}",
+                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
                                     value=f"**ID:** {tag_id}\nNo game data available",
                                     inline=True
                                 )
@@ -150,7 +150,7 @@ class PlayerManagement(commands.Cog):
                         logger.error(f"Error retrieving data for player {user_id}: {ex}")
                         if i < 15:
                             embed.add_field(
-                                name=f"{game_name}",
+                                name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
                                 value=f"**ID:** {tag_id}\nError retrieving player data",
                                 inline=True
                             )
@@ -171,7 +171,7 @@ class PlayerManagement(commands.Cog):
                             )
                             remaining_embeds.append(current_embed)
 
-                        user_id, game_name, tag_id = all_players[i]
+                        user_id, player_name, tag_id, game_name = player = all_players[i]
 
                         # Get player stats
                         try:
