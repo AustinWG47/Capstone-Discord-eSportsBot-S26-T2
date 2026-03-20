@@ -20,7 +20,7 @@ def index():
 
     # Get all records from each table
     players = conn.execute('SELECT * FROM player').fetchall()
-    games = conn.execute('SELECT * FROM game').fetchall()
+    games = conn.execute('SELECT * FROM league_game_details').fetchall()
     matches = conn.execute('SELECT * FROM Matches').fetchall()
     mvp_votes = conn.execute('SELECT * FROM MVP_Votes').fetchall()
 

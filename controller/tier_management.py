@@ -31,7 +31,7 @@ class TierManagement(commands.Cog):
                 
                 # Get player's tier information
                 db.cursor.execute(
-                    "SELECT tier, rank, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                    "SELECT tier, rank, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                     (user_id,)
                 )
                 tier_data = db.cursor.fetchone()
@@ -137,7 +137,7 @@ class TierManagement(commands.Cog):
                 
                 # Get current tier
                 db.cursor.execute(
-                    "SELECT tier, rank, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                    "SELECT tier, rank, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                     (user_id,)
                 )
                 tier_data = db.cursor.fetchone()
@@ -221,7 +221,7 @@ class TierManagement(commands.Cog):
                 
                 # Get current tier and rank
                 db.cursor.execute(
-                    "SELECT tier, rank, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                    "SELECT tier, rank, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                     (user_id,)
                 )
                 tier_data = db.cursor.fetchone()

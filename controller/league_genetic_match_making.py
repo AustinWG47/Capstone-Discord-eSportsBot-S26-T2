@@ -33,7 +33,7 @@ class GeneticMatchMaking:
                     # Query the Game table to get game-specific data
                     query = """
                         SELECT tier, rank, role, wins, losses, wr 
-                        FROM game 
+                        FROM league_game_details 
                         WHERE user_id = ? 
                         ORDER BY game_date DESC 
                         LIMIT 1

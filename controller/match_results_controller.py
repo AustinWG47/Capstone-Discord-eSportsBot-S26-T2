@@ -205,7 +205,7 @@ class MatchResultsController(commands.Cog):
             for player_id, team in players:
                 # Get current player stats
                 db.cursor.execute(
-                    "SELECT wins, losses FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                    "SELECT wins, losses FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                     (player_id,)
                 )
                 result = db.cursor.fetchone()
@@ -221,18 +221,18 @@ class MatchResultsController(commands.Cog):
                     if team == winning_team_name:
                         new_wins = current_wins + 1
                         update_query = """
-                            UPDATE game SET wins = ?
+                            UPDATE league_game_details SET wins = ?
                             WHERE user_id = ? AND game_date = (
-                                SELECT MAX(game_date) FROM game WHERE user_id = ?
+                                SELECT MAX(game_date) FROM league_game_details WHERE user_id = ?
                             )
                         """
                         db.cursor.execute(update_query, (new_wins, player_id, player_id))
                     elif team == losing_team_name:  # Exclude participation players
                         new_losses = current_losses + 1
                         update_query = """
-                            UPDATE game SET losses = ?
+                            UPDATE league_game_details SET losses = ?
                             WHERE user_id = ? AND game_date = (
-                                SELECT MAX(game_date) FROM game WHERE user_id = ?
+                                SELECT MAX(game_date) FROM league_game_details WHERE user_id = ?
                             )
                         """
                         db.cursor.execute(update_query, (new_losses, player_id, player_id))

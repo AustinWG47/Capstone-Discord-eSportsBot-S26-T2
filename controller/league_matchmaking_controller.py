@@ -142,7 +142,7 @@ class MatchmakingController(commands.Cog):
                 db.cursor.execute("""
                     SELECT p.user_id, p.game_name, p.tag_id, g.tier, g.rank 
                     FROM player p
-                    JOIN game g ON p.user_id = g.user_id
+                    JOIN league_game_details g ON p.user_id = g.user_id
                     GROUP BY p.user_id
                     HAVING MAX(g.game_date)
                 """)
@@ -274,7 +274,7 @@ class MatchmakingController(commands.Cog):
                     db.cursor.execute("""
                         SELECT p.user_id, p.game_name, p.tag_id, g.tier, g.rank, g.role, g.wins, g.losses, g.wr, g.manual_tier
                         FROM player p
-                        JOIN game g ON p.user_id = g.user_id
+                        JOIN league_game_details g ON p.user_id = g.user_id
                         GROUP BY p.user_id
                         HAVING MAX(g.game_date)
                         ORDER BY 

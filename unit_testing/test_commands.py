@@ -117,7 +117,7 @@ async def test_view_player_tier_admin(test_bot, mock_interaction):
             ("%TestPlayer%",)
         )
         mock_db.cursor.execute.assert_any_call(
-            "SELECT tier, rank, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+            "SELECT tier, rank, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
             (123,)
         )
         

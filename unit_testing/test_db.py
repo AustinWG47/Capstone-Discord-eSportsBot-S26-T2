@@ -144,7 +144,7 @@ def test_update_pref(db_instance):
     
     # Manually create the Game table to ensure it exists
     db_instance.cursor.execute("""
-        CREATE TABLE IF NOT EXISTS game (
+        CREATE TABLE IF NOT EXISTS league_game_details (
         user_id bigint not null,
         game_name text not null,
         tier text,
@@ -171,13 +171,13 @@ def test_update_pref(db_instance):
     
     # Insert game record
     db_instance.cursor.execute(
-        "INSERT INTO game (user_id, game_name, role) VALUES (?, ?, ?)",
+        "INSERT INTO league_game_details (user_id, game_name, role) VALUES (?, ?, ?)",
         (12345, "LoL", pref_json)
     )
     db_instance.connection.commit()
     
     # Verify the data was inserted
-    db_instance.cursor.execute("SELECT role FROM game WHERE user_id = ?", (12345,))
+    db_instance.cursor.execute("SELECT role FROM league_game_details WHERE user_id = ?", (12345,))
     role_result = db_instance.cursor.fetchone()
     
     # Assert the results
@@ -333,7 +333,7 @@ def test_game_update_player_tier(db_instance):
         
         # Insert initial record with game_name
         player.cursor.execute(
-            "INSERT INTO game(user_id, game_name, tier, rank) VALUES(?, ?, ?, ?)",
+            "INSERT INTO league_game_details(user_id, game_name, tier, rank) VALUES(?, ?, ?, ?)",
             (dummy.user.id, "TierPlayer", "BRONZE", "III")
         )
         player.connection.commit()
@@ -344,13 +344,13 @@ def test_game_update_player_tier(db_instance):
     try:
         # Direct SQL update as a test
         player.cursor.execute(
-            "UPDATE game SET tier = ?, rank = ? WHERE user_id = ?",
+            "UPDATE league_game_details SET tier = ?, rank = ? WHERE user_id = ?",
             ("GOLD", "II", dummy.user.id)
         )
         player.connection.commit()
         
         # Verify update worked
-        player.cursor.execute("SELECT tier, rank FROM game WHERE user_id = ?", (dummy.user.id,))
+        player.cursor.execute("SELECT tier, rank FROM league_game_details WHERE user_id = ?", (dummy.user.id,))
         result = player.cursor.fetchone()
         
         if result:

@@ -105,7 +105,7 @@ class Player(Tournament_DB):
 
     def register(self, interaction, gamename, playername, tagid):
         player_register_query = "insert into player(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
-        game_register_query = "insert into game(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
+        game_register_query = "insert into league_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
 
         try:
             uniq_user_id = interaction.user.id
@@ -288,7 +288,7 @@ class Game(Tournament_DB):
     
     def createTable(self):
         game_table_query = """
-            CREATE TABLE IF NOT EXISTS game (
+            CREATE TABLE IF NOT EXISTS league_game_details (
             user_id bigint not null,
             game_name text not null,
             player_name text not null,
@@ -324,13 +324,13 @@ class Game(Tournament_DB):
                     game_name = player_data[0]
                 
                 # Check if record already exists
-                self.cursor.execute("SELECT COUNT(*) FROM game WHERE user_id = ?", (uniq_user_id,))
+                self.cursor.execute("SELECT COUNT(*) FROM league_game_details WHERE user_id = ?", (uniq_user_id,))
                 exists = self.cursor.fetchone()[0] > 0
                 if exists:
-                    update_query = "UPDATE game SET role = ? WHERE user_id = ?"
+                    update_query = "UPDATE league_game_details SET role = ? WHERE user_id = ?"
                     self.cursor.execute(update_query, (pref, uniq_user_id))
                 else:
-                    insert_query = "INSERT INTO game(user_id, game_name, role) VALUES(?, ?, ?)"
+                    insert_query = "INSERT INTO league_game_details(user_id, game_name, role) VALUES(?, ?, ?)"
                     self.cursor.execute(insert_query, (uniq_user_id, game_name, pref))
                 self.connection.commit()
             else:
@@ -349,7 +349,7 @@ class Game(Tournament_DB):
                     game_name = "League of Legends"
                 else:
                     game_name = player_data[0]
-                self.cursor.execute("INSERT INTO game(user_id, game_name, role) VALUES(?, ?, ?)", (uniq_user_id, game_name, role))
+                self.cursor.execute("INSERT INTO league_game_details(user_id, game_name, role) VALUES(?, ?, ?)", (uniq_user_id, game_name, role))
                 self.connection.commit()
             else:
                 logger.error(f"update_role has failed because of Non user id")
@@ -366,16 +366,16 @@ class Game(Tournament_DB):
             if player_data and player_data[0]:
                 game_name = player_data[0]
                 update_query = """
-                    UPDATE game 
+                    UPDATE league_game_details 
                     SET tier = ?, rank = ?, wins = ?, losses = ?, manual_tier = ?
                     WHERE user_id = ? AND game_date = (
-                        SELECT MAX(game_date) FROM game WHERE user_id = ?
+                        SELECT MAX(game_date) FROM league_game_details WHERE user_id = ?
                     )
                 """
                 self.cursor.execute(update_query, (tier, rank, wins, losses, manual_tier, player_id, player_id))
                 if self.cursor.rowcount == 0:
                     register_query = """
-                        INSERT INTO game(user_id, game_name, tier, rank, wins, losses, manual_tier) 
+                        INSERT INTO league_game_details(user_id, game_name, tier, rank, wins, losses, manual_tier) 
                         VALUES(?, ?, ?, ?, ?, ?, ?)
                     """
                     self.cursor.execute(register_query, (player_id, game_name, tier, rank, wins, losses, manual_tier))
@@ -396,7 +396,7 @@ class Game(Tournament_DB):
                 game_name = player_data[0]
                 query = """
                     SELECT manual_tier, tier, rank
-                    FROM game
+                    FROM league_game_details
                     WHERE user_id = ?
                     ORDER BY game_date DESC
                     LIMIT 1
@@ -424,15 +424,15 @@ class Game(Tournament_DB):
             player_data = self.cursor.fetchone()
             if player_data and player_data[0]:
                 game_name = player_data[0]
-                query = "SELECT COUNT(*) FROM game WHERE user_id = ?"
+                query = "SELECT COUNT(*) FROM league_game_details WHERE user_id = ?"
                 self.cursor.execute(query, (player_id,))
                 count = self.cursor.fetchone()[0]
                 if count > 0:
                     update_query = """
-                        UPDATE game 
+                        UPDATE league_game_details 
                         SET manual_tier = ?
                         WHERE user_id = ? AND game_date = (
-                            SELECT MAX(game_date) FROM game WHERE user_id = ?
+                            SELECT MAX(game_date) FROM league_game_details WHERE user_id = ?
                         )
                     """
                     self.cursor.execute(update_query, (manual_tier, player_id, player_id))
@@ -450,7 +450,7 @@ class Game(Tournament_DB):
     def update_player_tier(self, player_id, tier, rank):
         """Update a player's tier and rank in the Game table"""
         # First check if the player already has a game entry
-        query = "SELECT COUNT(*) FROM game WHERE user_id = ?"
+        query = "SELECT COUNT(*) FROM league_game_details WHERE user_id = ?"
         
         try:
             self.cursor.execute(query, (player_id,))
@@ -459,16 +459,16 @@ class Game(Tournament_DB):
             if count > 0:
                 # Update existing record with the most recent game_date
                 update_query = """
-                    UPDATE game 
+                    UPDATE league_game_details 
                     SET tier = ?, rank = ?
                     WHERE user_id = ? AND game_date = (
-                        SELECT MAX(game_date) FROM game WHERE user_id = ?
+                        SELECT MAX(game_date) FROM league_game_details WHERE user_id = ?
                     )
                 """
                 self.cursor.execute(update_query, (tier, rank, player_id, player_id))
             else:
                 # Create a new entry
-                insert_query = "INSERT INTO game(user_id, tier, rank) VALUES(?, ?, ?)"
+                insert_query = "INSERT INTO league_game_details(user_id, tier, rank) VALUES(?, ?, ?)"
                 self.cursor.execute(insert_query, (player_id, tier, rank))
                 
             self.connection.commit()
@@ -478,7 +478,7 @@ class Game(Tournament_DB):
             return False
 
     def fetchGameDetails(self):
-        query = "select user_id, game_name, tier, rank, role, wr from Game"
+        query = "select user_id, game_name, tier, rank, role, wr from League_Game_Details"
         try:
             self.cursor.execute(query)
             return self.cursor.fetchall()
@@ -630,7 +630,7 @@ class Player_game_info(Tournament_DB):
                 FROM player p
                 LEFT JOIN (
                     SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                    FROM game
+                    FROM league_game_details
                     GROUP BY user_id
                 ) g ON p.user_id = g.user_id
                 ORDER BY p.game_name

@@ -174,6 +174,7 @@ class TeamDisplayController(commands.Cog):
                 match_num = db.cursor.fetchone()[0]
                 
                 # Get exactly 5 players for team 1
+                #now only for league
                 team1_players = []
                 db.cursor.execute("""
                     SELECT p.user_id, p.game_name, g.tier, g.rank, g.role, g.manual_tier, g.wins, g.losses, g.wr
@@ -181,7 +182,7 @@ class TeamDisplayController(commands.Cog):
                     JOIN player p ON m.user_id = p.user_id
                     LEFT JOIN (
                         SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                        FROM game
+                        FROM league_game_details
                         GROUP BY user_id
                     ) g ON m.user_id = g.user_id
                     WHERE m.teamId = ? AND m.teamUp = 'team1' AND m.match_num = ?
@@ -221,7 +222,7 @@ class TeamDisplayController(commands.Cog):
                     JOIN player p ON m.user_id = p.user_id
                     LEFT JOIN (
                         SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                        FROM game
+                        FROM league_game_details
                         GROUP BY user_id
                     ) g ON m.user_id = g.user_id
                     WHERE m.teamId = ? AND m.teamUp = 'team2' AND m.match_num = ?
@@ -459,7 +460,7 @@ class TeamDisplayController(commands.Cog):
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
                     SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                    FROM game
+                    FROM league_game_details
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
                 WHERE m.teamId = ? AND m.teamUp = 'team1' AND m.match_num = ?
@@ -499,7 +500,7 @@ class TeamDisplayController(commands.Cog):
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
                     SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                    FROM game
+                    FROM league_game_details
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
                 WHERE m.teamId = ? AND m.teamUp = 'team2' AND m.match_num = ?
@@ -734,7 +735,7 @@ class TeamDisplayController(commands.Cog):
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
                     SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                    FROM game
+                    FROM league_game_details
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
                 WHERE m.teamId = ? AND m.teamUp = 'team1' AND m.match_num = ?
@@ -776,7 +777,7 @@ class TeamDisplayController(commands.Cog):
                 JOIN player p ON m.user_id = p.user_id
                 LEFT JOIN (
                     SELECT user_id, tier, rank, role, manual_tier, wins, losses, wr, MAX(game_date) as max_date
-                    FROM game
+                    FROM league_game_details
                     GROUP BY user_id
                 ) g ON m.user_id = g.user_id
                 WHERE m.teamId = ? AND m.teamUp = 'team2' AND m.match_num = ?

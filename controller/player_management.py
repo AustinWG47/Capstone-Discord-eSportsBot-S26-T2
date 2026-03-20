@@ -67,7 +67,7 @@ class PlayerManagement(commands.Cog):
                     # Try to get player stats from game table
                     try:
                         db.cursor.execute(
-                            "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                            "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                             (user_id,)
                         )
                         game_data = db.cursor.fetchone()
@@ -176,7 +176,7 @@ class PlayerManagement(commands.Cog):
                         # Get player stats
                         try:
                             db.cursor.execute(
-                                "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                                "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                                 (user_id,)
                             )
                             game_data = db.cursor.fetchone()
@@ -294,7 +294,7 @@ class PlayerManagement(commands.Cog):
 
                 # Get player stats
                 db.cursor.execute(
-                    "SELECT tier, rank, role, wins, losses, wr, manual_tier FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                    "SELECT tier, rank, role, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                     (player_id,)
                 )
                 game_data = db.cursor.fetchone()
@@ -438,7 +438,7 @@ class PlayerManagement(commands.Cog):
             # Delete existing simulated players to avoid duplicates
             try:
                 db.cursor.execute("DELETE FROM player WHERE user_id >= 9000000")
-                db.cursor.execute("DELETE FROM game WHERE user_id >= 9000000")
+                db.cursor.execute("DELETE FROM league_game_details WHERE user_id >= 9000000")
                 db.connection.commit()
                 logger.info("Cleared previous simulated players")
             except Exception as ex:
@@ -545,8 +545,8 @@ class PlayerManagement(commands.Cog):
                     
                     try:
                         # Insert player record
-                        insert_query = "INSERT INTO player(user_id, game_name, tag_id) VALUES(?, ?, ?)"
-                        db.cursor.execute(insert_query, (player_id, summoner_name, tag_id))
+                        insert_query = "INSERT INTO player(user_id, player_name, tag_id, game_name) VALUES(?, ?, ?, ?)"
+                        db.cursor.execute(insert_query, (player_id, summoner_name, tag_id, "League of Legends"))
 
                         # Insert player preferences (1-3 lane preferences)
                         pref_count = random.randint(1, 3)
@@ -557,18 +557,20 @@ class PlayerManagement(commands.Cog):
                         manual_tier = game_db.calculate_manual_tier(tier, rank)
                         
                         # Insert skills and preferences including manual tier
-                        game_query = "INSERT INTO game(user_id, game_name, tier, rank, role, wins, losses, manual_tier) VALUES(?, ?, ?, ?, ?, ?, ?, ?)"
+                        game_query = "INSERT INTO league_game_details(user_id, player_name, tag_id, tier, rank, role, wins, losses, manual_tier, game_name) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                         db.cursor.execute(
                             game_query,
                             (
                                 player_id,
                                 summoner_name,
+                                tag_id,
                                 tier,
                                 rank,
                                 json.dumps(random_lanes),
                                 wins,
                                 losses,
-                                manual_tier
+                                manual_tier,
+                                "League of Legends"
                             )
                         )
                         

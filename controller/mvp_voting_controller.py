@@ -491,7 +491,7 @@ class MVPVotingController(commands.Cog):
             
             # Get additional player stats if available
             self.db.cursor.execute(
-                "SELECT tier, rank, wins, losses FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                "SELECT tier, rank, wins, losses FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                 (player_id,)
             )
             stats_result = self.db.cursor.fetchone()

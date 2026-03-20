@@ -59,7 +59,7 @@ class TeamSwapController(commands.Cog):
                     JOIN player p ON m.user_id = p.user_id
                     LEFT JOIN (
                         SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
-                        FROM game
+                        FROM league_game_details
                         GROUP BY user_id
                     ) g ON m.user_id = g.user_id
                     WHERE m.teamId = ? AND m.teamUp = 'team1'
@@ -96,7 +96,7 @@ class TeamSwapController(commands.Cog):
                     JOIN player p ON m.user_id = p.user_id
                     LEFT JOIN (
                         SELECT user_id, tier, rank, role, manual_tier, MAX(game_date) as max_date
-                        FROM game
+                        FROM league_game_details
                         GROUP BY user_id
                     ) g ON m.user_id = g.user_id
                     WHERE m.teamId = ? AND m.teamUp = 'team2'
