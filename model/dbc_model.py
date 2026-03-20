@@ -286,6 +286,8 @@ class Player(Tournament_DB):
 
 class Game(Tournament_DB):
     
+
+    #league table and functions
     def createTable(self):
         game_table_query = """
             CREATE TABLE IF NOT EXISTS league_game_details (
@@ -484,6 +486,46 @@ class Game(Tournament_DB):
             return self.cursor.fetchall()
         except Exception as ex:
             logger.error(f"fetchGameDetails has failed with error {ex}")
+
+    #marvel rivals table
+    def createMRTable(self):
+        mr_table_query = """
+            CREATE TABLE IF NOT EXISTS mr_game_details (
+            user_id bigint not null,
+            game_name text not null,
+            player_name text not null,
+            tag_id text not null,
+            tier text,
+            rank text,
+            wins integer,
+            losses integer,
+            wr float generated always as (wins * 1.0 / (wins + losses)*100) stored,
+            game_date text default (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
+            FOREIGN KEY (game_name) REFERENCES player (game_name) ON DELETE CASCADE
+        )
+        """
+        self.cursor.execute(mr_table_query)
+        self.connection.commit()
+
+    #COD rivals table
+    def createCODTable(self):
+        cod_table_query = """
+            CREATE TABLE IF NOT EXISTS cod_game_details (
+            user_id bigint not null,
+            game_name text not null,
+            player_name text not null,
+            tag_id text not null,
+            wins integer,
+            losses integer,
+            wr float generated always as (wins * 1.0 / (wins + losses)*100) stored,
+            game_date text default (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
+            FOREIGN KEY (game_name) REFERENCES player (game_name) ON DELETE CASCADE
+        )
+        """
+        self.cursor.execute(cod_table_query)
+        self.connection.commit()
     
 class Matches(Tournament_DB):
     

@@ -34,6 +34,8 @@ async def main():
     db = Tournament_DB()
     Player.createTable(db)
     Game.createTable(db)
+    Game.createMRTable(db)
+    Game.createCODTable(db)
 
     # Import and create Matches, MVP_Votes, and Player_game_info tables
     from model.dbc_model import Matches, MVP_Votes, Player_game_info
