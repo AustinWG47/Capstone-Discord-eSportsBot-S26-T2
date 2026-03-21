@@ -161,6 +161,7 @@ class Player(Tournament_DB):
             create table if not exists player (
             user_id bigint PRIMARY KEY,
             game_name text not null,
+            player_name text not null,
             game_id text,
             tag_id text not null,
             isAdmin integer not null default 0,
