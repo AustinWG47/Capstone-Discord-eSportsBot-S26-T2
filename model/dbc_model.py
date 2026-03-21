@@ -63,6 +63,97 @@ class Tournament_DB:
         
         return round(tier_value, 2)
 
+
+class Teams(Tournament_DB):
+    def createTable(self):
+        # Table for teams
+        teams_table_query = """
+        CREATE TABLE IF NOT EXISTS teams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            team_name TEXT,
+            game_name TEXT,
+            owner_id BIGINT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+        self.cursor.execute(teams_table_query)
+
+        # Table for team members
+        team_members_table_query = """
+        CREATE TABLE IF NOT EXISTS team_members (
+            team_id INTEGER NOT NULL,
+            user_id BIGINT NOT NULL,
+            joined_at TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY (team_id, user_id),
+            FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+        )
+        """
+        self.cursor.execute(team_members_table_query)
+        self.connection.commit()
+
+    # Team operations
+    def create_team(self, owner_id: int, team_name: str = None, game_name: str = None):
+        #Create a new team and add the owner as a member.
+        self.cursor.execute(
+            "INSERT INTO teams (team_name, game_name, owner_id) VALUES (?, ?, ?)",
+            (team_name, game_name, owner_id)
+        )
+        team_id = self.cursor.lastrowid
+        self.cursor.execute(
+            "INSERT INTO team_members (team_id, user_id) VALUES (?, ?)",
+            (team_id, owner_id)
+        )
+        self.connection.commit()
+        return team_id
+
+    def get_team_of_user(self, user_id: int):
+        #Return the team info (id, name, game, owner) of a user.
+        self.cursor.execute("""
+            SELECT t.id, t.team_name, t.game_name, t.owner_id
+            FROM team_members tm
+            JOIN teams t ON tm.team_id = t.id
+            WHERE tm.user_id = ?
+        """, (user_id,))
+        return self.cursor.fetchone()
+
+    def add_member(self, team_id: int, user_id: int):
+        #Add a user to a team.
+        self.cursor.execute(
+            "INSERT OR IGNORE INTO team_members (team_id, user_id) VALUES (?, ?)",
+            (team_id, user_id)
+        )
+        self.connection.commit()
+
+    def remove_member(self, team_id: int, user_id: int):
+        #Remove a member from a team. Cannot remove owner.
+        self.cursor.execute(
+            "SELECT owner_id FROM teams WHERE id = ?", (team_id,)
+        )
+        owner_id = self.cursor.fetchone()[0]
+        if user_id == owner_id:
+            raise ValueError("Cannot remove the owner from their team!")
+        self.cursor.execute(
+            "DELETE FROM team_members WHERE team_id = ? AND user_id = ?",
+            (team_id, user_id)
+        )
+        self.connection.commit()
+
+    def get_team_size(self, team_id: int):
+        #Return the number of members in a team.
+        self.cursor.execute(
+            "SELECT COUNT(*) FROM team_members WHERE team_id = ?", (team_id,)
+        )
+        return self.cursor.fetchone()[0]
+
+    def list_team_members(self, team_id: int):
+        #Return a list of user_ids in a team.
+        self.cursor.execute(
+            "SELECT user_id FROM team_members WHERE team_id = ?", (team_id,)
+        )
+        return [row[0] for row in self.cursor.fetchall()]
+
+
+
 class Player(Tournament_DB):
     
     def createTable(self):
@@ -104,6 +195,8 @@ class Player(Tournament_DB):
             return False
 
     def register(self, interaction, gamename, playername, tagid):
+
+        #if user_id not exists in player table, then insert into player table, else just insert into game specific table
         player_register_query = "insert into player(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
         league_register_query = "insert into league_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
         mr_register_query = "insert into mr_game_details(user_id, game_name, player_name, tag_id) values(?, ?, ?, ?)"
@@ -190,7 +283,7 @@ class Player(Tournament_DB):
             logger.error(f"isMemberExist has failed with error {ex}")
 
     def get_all_player(self):
-        query = "select user_id, player_name, tag_id, game_name from player"
+        query = "select user_id, player_name, tag_id, game_name from player WHERE LOWER(game_name) = 'league of legends'"
         try:
             self.cursor.execute(query)
             return self.cursor.fetchall()

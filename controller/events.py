@@ -41,6 +41,7 @@ class EventsController(commands.Cog):
                 embed.set_thumbnail(url=f"attachment://resized_logo{logo_extention}")
 
                 await member.send(embed=embed, file=discord.File(resize_logo, filename=f"resized_logo{logo_extention}"))
+                
                 message = await member.send(view=views_for_signup)
 
                 views_for_signup.message = message
