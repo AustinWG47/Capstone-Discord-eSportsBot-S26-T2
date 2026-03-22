@@ -151,7 +151,28 @@ class Teams(Tournament_DB):
             "SELECT user_id FROM team_members WHERE team_id = ?", (team_id,)
         )
         return [row[0] for row in self.cursor.fetchall()]
-
+    
+    def get_all_teams_with_members(self):
+        query = """
+            SELECT t.id, t.team_name, tm.user_id
+            FROM teams t
+            JOIN team_members tm ON t.id = tm.team_id
+            ORDER BY t.id
+        """
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        
+        teams = {}
+        for team_id, team_name, user_id in rows:
+            if team_id not in teams:
+                teams[team_id] = {
+                    "team_id": team_id,
+                    "team_name": team_name or f"Team_{team_id}",
+                    "players": []
+                }
+            teams[team_id]["players"].append(str(user_id))
+        return list(teams.values())
+        
 
 
 class Player(Tournament_DB):
