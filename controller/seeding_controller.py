@@ -5,7 +5,7 @@ import json
 from config import settings
 
 from model.dbc_model import Teams
-from ollama_seeding import generate_bracket_with_ai
+from common.ollama_seeding import generate_bracket_with_ai
 
 logger = settings.logging.getLogger("discord")
 
