@@ -17,6 +17,8 @@ Rules:
 - Use ALL teams exactly once
 - Randomize match pairings
 - If odd number of teams, one gets a bye (team2 = null)
+- Each match should contain the full list of players for each team.
+- Do NOT split players across matches.
 
 Format:
 {{
