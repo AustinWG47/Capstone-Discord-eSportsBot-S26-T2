@@ -35,7 +35,7 @@ class UserSelect(discord.ui.UserSelect):
             await interaction.response.send_message("❌ You already own a team.", ephemeral=True)
             return
 
-        # Create team
+        # Create teamm and add owner as first member
         team_id = teams_db.create_team(interaction.user.id)
 
         success, failed = [], []
