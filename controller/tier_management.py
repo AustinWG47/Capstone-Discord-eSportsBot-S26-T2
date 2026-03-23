@@ -126,7 +126,7 @@ class TierManagement(commands.Cog):
                     return
                 
                 # Find player ID from name
-                db.cursor.execute("SELECT user_id, game_name FROM player WHERE game_name LIKE ?", (f"%{player_name}%",))
+                db.cursor.execute("SELECT user_id, player_name FROM player WHERE player_name LIKE ?", (f"%{player_name}%",))
                 player_data = db.cursor.fetchone()
 
                 if not player_data:

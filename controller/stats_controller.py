@@ -35,10 +35,11 @@ class StatsController(commands.Cog):
             )
             return
 
-        game_name, tier, rank, wins, losses, wr, game_date = row
+        player_name, game_name, tier, rank, wins, losses, wr, game_date = row
 
         # Simple embed output
         embed = discord.Embed(title=f"Stats for {target.display_name}")
+        embed.add_field(name="Player Name", value=str(player_name), inline=False)
         embed.add_field(name="Game", value=str(game_name), inline=False)
         embed.add_field(name="Rank", value=f"{tier} {rank}", inline=True)
         embed.add_field(name="Wins / Losses", value=f"{wins} / {losses}", inline=True)

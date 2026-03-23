@@ -970,7 +970,7 @@ class MVP_Votes(Tournament_DB):
                 
                 # Get player name
                 self.cursor.execute(
-                    "SELECT game_name FROM player WHERE user_id = ?",
+                    "SELECT player_name FROM player WHERE user_id = ?",
                     (winner_id,)
                 )
                 name_result = self.cursor.fetchone()
