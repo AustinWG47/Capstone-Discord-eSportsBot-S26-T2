@@ -21,8 +21,8 @@ class StatsController(commands.Cog):
 
         # Pull latest stats from Game table
         db.cursor.execute(
-            "SELECT game_name, tier, rank, wins, losses, wr, game_date "
-            "FROM game WHERE user_id = ? "
+            "SELECT player_name,game_name, tier, rank, wins, losses, wr, game_date "
+            "FROM league_game_details WHERE user_id = ? "
             "ORDER BY game_date DESC LIMIT 1",
             (user_id,)
         )

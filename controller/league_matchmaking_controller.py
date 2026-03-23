@@ -272,7 +272,7 @@ class MatchmakingController(commands.Cog):
                 try:
                     # Get all players with game data
                     db.cursor.execute("""
-                        SELECT p.user_id, p.game_name, p.tag_id, g.tier, g.rank, g.role, g.wins, g.losses, g.wr, g.manual_tier
+                        SELECT p.user_id,p.player_name, p.game_name, p.tag_id, g.tier, g.rank, g.role, g.wins, g.losses, g.wr, g.manual_tier
                         FROM player p
                         JOIN league_game_details g ON p.user_id = g.user_id
                         GROUP BY p.user_id
@@ -303,7 +303,7 @@ class MatchmakingController(commands.Cog):
                     player_records = db.cursor.fetchall()
 
                     for record in player_records:
-                        user_id, game_name, tag_id, tier, rank, role_json, wins, losses, wr, manual_tier = record
+                        user_id, player_name, game_name, tag_id, tier, rank, role_json, wins, losses, wr, manual_tier = record
 
                         # Parse role preferences
                         roles = []
@@ -317,6 +317,7 @@ class MatchmakingController(commands.Cog):
 
                         player = {
                             'user_id': user_id,
+                            'player_name': player_name,
                             'game_name': game_name,
                             'tag_id': tag_id,
                             'tier': tier.lower() if tier else 'default',
@@ -366,7 +367,7 @@ class MatchmakingController(commands.Cog):
                         # Use lowest ranked players
                         lowest_ranked_players = all_players[-extra_players:]
                         for player in lowest_ranked_players:
-                            players_to_exclude.append(player['user_id'])
+                            players_to_exclude.append(player['player_name'])
                             participation_players.append(player)
 
                         await interaction.followup.send(
@@ -393,12 +394,12 @@ class MatchmakingController(commands.Cog):
                         if view.is_complete:
                             participation_players = view.selected_players
                             for player in participation_players:
-                                players_to_exclude.append(player['user_id'])
+                                players_to_exclude.append(player['player_name'])
                         else:
                             # Fallback to random if view timed out
                             random_players = random.sample(all_players, extra_players)
                             for player in random_players:
-                                players_to_exclude.append(player['user_id'])
+                                players_to_exclude.append(player['player_name'])
                                 participation_players.append(player)
 
                             await interaction.followup.send(
@@ -409,7 +410,7 @@ class MatchmakingController(commands.Cog):
                         # Randomly select players to sit out
                         random_players = random.sample(all_players, extra_players)
                         for player in random_players:
-                            players_to_exclude.append(player['user_id'])
+                            players_to_exclude.append(player['player_name'])
                             participation_players.append(player)
 
                         await interaction.followup.send(
@@ -417,7 +418,7 @@ class MatchmakingController(commands.Cog):
                         )
 
                 # Remove excluded players
-                filtered_players = [p for p in all_players if p['user_id'] not in players_to_exclude]
+                filtered_players = [p for p in all_players if p['player_name'] not in players_to_exclude]
 
                 # Split players into pools based on skill
                 filtered_players.sort(key=lambda p: (
@@ -522,7 +523,7 @@ class MatchmakingController(commands.Cog):
                     
                     # Add players to embeds
                     for i, player in enumerate(team1):
-                        name = player.get('game_name', player.get('user_id', 'Unknown'))
+                        name = player.get('player_name', player.get('user_id', 'Unknown'))
                         tier = player.get('tier', 'Unknown').capitalize()
                         rank = player.get('rank', '')
                         roles = player.get('role', [])
@@ -555,7 +556,7 @@ class MatchmakingController(commands.Cog):
                         )
 
                     for i, player in enumerate(team2):
-                        name = player.get('game_name', player.get('user_id', 'Unknown'))
+                        name = player.get('player_name', player.get('user_id', 'Unknown'))
                         tier = player.get('tier', 'Unknown').capitalize()
                         rank = player.get('rank', '')
                         roles = player.get('role', [])
@@ -609,8 +610,8 @@ class MatchmakingController(commands.Cog):
                         team2_player = next((p for p in team2 if p.get("assigned_role") == role), None)
                         
                         if team1_player and team2_player:
-                            team1_name = team1_player.get('game_name', 'Unknown')
-                            team2_name = team2_player.get('game_name', 'Unknown')
+                            team1_name = team1_player.get('player_name', 'Unknown')
+                            team2_name = team2_player.get('player_name', 'Unknown')
                             team1_tier = team1_player.get('tier', 'default').capitalize()
                             team2_tier = team2_player.get('tier', 'default').capitalize()
                             team1_rank = team1_player.get('rank', '')
@@ -667,7 +668,7 @@ class MatchmakingController(commands.Cog):
                     )
 
                     for i, player in enumerate(participation_players):
-                        name = player.get('game_name', player.get('user_id', 'Unknown'))
+                        name = player.get('player_name', player.get('user_id', 'Unknown'))
                         tier = player.get('tier', 'Unknown').capitalize()
                         rank = player.get('rank', '')
                         roles = player.get('role', [])
