@@ -150,7 +150,7 @@ class Seeding(commands.Cog):
                 return
 
             await interaction.followup.send(
-                f"🧠 Bracket from Matchmaking:\n```json\n{json.dumps(bracket, indent=2)}\n```"
+                f"Bracket from Matchmaking:\n```json\n{json.dumps(bracket, indent=2)}\n```"
             )
 
         except Exception as e:
