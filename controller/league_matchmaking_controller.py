@@ -30,7 +30,7 @@ class MatchmakingController(commands.Cog):
             # Create a select menu with player options
             options = []
             for player in self.players[:25]:  # Discord has a 25-option limit
-                player_name = player.get('game_name', str(player.get('user_id')))
+                player_name = player.get('player_name', str(player.get('user_id')))
                 tier = player.get('tier', 'unknown').capitalize()
                 rank = player.get('rank', '')
 
@@ -140,7 +140,7 @@ class MatchmakingController(commands.Cog):
             try:
                 # Get all players
                 db.cursor.execute("""
-                    SELECT p.user_id, p.game_name, p.tag_id, g.tier, g.rank 
+                    SELECT p.user_id, p.player_name, p.tag_id, g.tier, g.rank 
                     FROM player p
                     JOIN league_game_details g ON p.user_id = g.user_id
                     GROUP BY p.user_id
@@ -152,7 +152,7 @@ class MatchmakingController(commands.Cog):
                     user_id, game_name, tag_id, tier, rank = record
                     all_players.append({
                         'user_id': user_id,
-                        'game_name': game_name,
+                        'player_name': game_name,
                         'tier': tier.lower() if tier else 'default',
                         'rank': rank if rank else ''
                     })
@@ -230,7 +230,7 @@ class MatchmakingController(commands.Cog):
                 for player in volunteers:
                     user_id = player.get('user_id')
                     if user_id:
-                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
+                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, player_name) VALUES(?, ?, ?, ?, ?)"
                         db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num, "League of Legends"))
 
                 db.connection.commit()

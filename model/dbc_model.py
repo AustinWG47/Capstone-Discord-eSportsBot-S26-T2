@@ -630,7 +630,7 @@ class Game(Tournament_DB):
         self.cursor.execute(mr_table_query)
         self.connection.commit()
 
-    #COD rivals table
+    #COD table
     def createCODTable(self):
         cod_table_query = """
             CREATE TABLE IF NOT EXISTS cod_game_details (
@@ -640,6 +640,7 @@ class Game(Tournament_DB):
             tag_id text not null,
             wins integer,
             losses integer,
+            kda float,
             wr float generated always as (wins * 1.0 / (wins + losses)*100) stored,
             game_date text default (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
