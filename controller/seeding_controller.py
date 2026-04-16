@@ -6,7 +6,7 @@ from config import settings
 from model.dbc_model import Tournament_DB
 from model.dbc_model import Teams
 from common.ollama_seeding import generate_bracket_with_ai
-
+from common.tournament_runner import TournamentRunner
 logger = settings.logging.getLogger("discord")
 
 
@@ -94,12 +94,12 @@ class Seeding(commands.Cog):
 )
     async def seed_from_matchmaking(self, interaction: discord.Interaction):
 
+        db = Tournament_DB()
+
         try:
             await interaction.response.defer()
 
-            db = Tournament_DB()
-
-            #get all matchmaking teams
+            # get all matchmaking teams
             db.cursor.execute("""
                 SELECT m.teamId, m.teamUp, p.player_name
                 FROM Matches m
@@ -114,7 +114,7 @@ class Seeding(commands.Cog):
                 await interaction.followup.send("No matchmaking data found.")
                 return
 
-            #build teams
+            # build teams
             teams = {}
 
             for team_id, team_up, player_name in rows:
@@ -126,32 +126,31 @@ class Seeding(commands.Cog):
                         "players": []
                     }
 
-                #avoid accidental None / duplicates
                 if player_name and player_name not in teams[key]["players"]:
                     teams[key]["players"].append(player_name)
 
-            ai_teams = list(teams.values())
+            ai_teams = [t for t in teams.values() if t["players"]]
 
-            #validation
             if len(ai_teams) < 2:
                 await interaction.followup.send("Not enough teams to generate bracket.")
                 return
 
-            #Optional: remove empty teams (extra safety)
-            ai_teams = [t for t in ai_teams if t["players"]]
-
-            #generate bracket
+         # generate bracket with AI
             bracket = generate_bracket_with_ai(ai_teams)
 
             if "error" in bracket:
                 await interaction.followup.send(
-                    f" AI returned invalid JSON:\n```{bracket['raw'][:1500]}```"
+                    f"⚠️ AI returned invalid JSON:\n```{bracket['raw'][:1500]}```"
                 )
                 return
 
-            await interaction.followup.send(
-                f"Bracket from Matchmaking:\n```json\n{json.dumps(bracket, indent=2)}\n```"
-            )
+            if "matches" not in bracket:
+                await interaction.followup.send("AI did not return valid bracket structure.")
+                return
+
+            # 🔥 THIS IS THE IMPORTANT CHANGE
+            runner = TournamentRunner(interaction, bracket["matches"])
+            await runner.start()
 
         except Exception as e:
             logger.error(f"Seed from matchmaking error: {e}")
@@ -160,6 +159,37 @@ class Seeding(commands.Cog):
         finally:
             db.close_db()
 
+    @app_commands.command(
+    name="start_tournament",
+    description="Start a tournament with interactive bracket UI"
+)
+    async def start_tournament(self, interaction: discord.Interaction):
+
+        try:
+            await interaction.response.defer()
+
+            teams_db = Teams()
+            teams = teams_db.get_all_teams_with_members()
+
+            if not teams or len(teams) < 2:
+                await interaction.followup.send("Need at least 2 teams.")
+                return
+
+            bracket = generate_bracket_with_ai(teams)
+
+            if "error" in bracket:
+                await interaction.followup.send(
+                    f"⚠️ AI error:\n```{bracket['raw'][:1500]}```"
+                )
+                return
+
+            # Start interactive tournament
+            runner = TournamentRunner(interaction, bracket["matches"])
+            await runner.start()
+
+        except Exception as e:
+            logger.error(f"Tournament start error: {e}")
+        await interaction.followup.send("Error starting tournament.")
 
 
 # Setup
