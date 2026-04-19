@@ -1,20 +1,54 @@
-**/__pycache__
-venv/
-.env/
+# Version control
+.git/
+.gitignore
+.gitattributes
 
-**/.log
+# Python build artifacts
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Virtualenvs
+venv/
+.venv/
+env/
+
+# Secrets / local env (never bake into the image)
+.env
+.env.*
+!.env.template
+token.json
+service_account.json
+
+# Logs
+**/*.log
+Log/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
 *.bak
 
-token.json
+# Databases (except the seeded one, if any)
 *.db
 !main_db.db
 
+# Spreadsheets (except the seeded one, if any)
 *.xlsx
 !PlayerStats.xlsx
 
+# Project-specific
 Documentation/
 test_folder/
 run.py
-
 tournament_dbc
 match_making/
