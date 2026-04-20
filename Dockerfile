@@ -24,6 +24,7 @@ COPY . .
 
 # Run as a non-root user for better security
 RUN useradd --create-home --shell /bin/bash app \
+    && mkdir -p /app/Log \
     && chown -R app:app /app
 USER app
 
