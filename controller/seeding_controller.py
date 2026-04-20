@@ -99,12 +99,15 @@ class Seeding(commands.Cog):
         try:
             await interaction.response.defer()
 
-            # get all matchmaking teams
+            # Fetch the most recent matchmaking session
             db.cursor.execute("""
                 SELECT m.teamId, m.teamUp, p.player_name
                 FROM Matches m
                 JOIN player p ON m.user_id = p.user_id
-                WHERE m.teamId LIKE 'match_%'
+                WHERE m.match_num = (
+                    SELECT MAX(match_num) FROM Matches
+                )
+                AND m.teamUp IN ('team1','team2')
                 ORDER BY m.teamId, m.teamUp
             """)
 
@@ -114,10 +117,13 @@ class Seeding(commands.Cog):
                 await interaction.followup.send("No matchmaking data found.")
                 return
 
-            # build teams
+            logger.info(f"[Tournament] Retrieved {len(rows)} rows from matchmaking.")
+
+            # Build teams from database rows
             teams = {}
 
             for team_id, team_up, player_name in rows:
+
                 key = f"{team_id}_{team_up}"
 
                 if key not in teams:
@@ -131,30 +137,47 @@ class Seeding(commands.Cog):
 
             ai_teams = [t for t in teams.values() if t["players"]]
 
+            logger.info(f"[Tournament] Reconstructed {len(ai_teams)} teams.")
+
+            # Debug print of reconstructed teams
+            logger.debug(f"[Tournament] Teams: {ai_teams}")
+
             if len(ai_teams) < 2:
                 await interaction.followup.send("Not enough teams to generate bracket.")
                 return
 
-         # generate bracket with AI
+            # Generate bracket using AI shuffle + deterministic builder
             bracket = generate_bracket_with_ai(ai_teams)
 
+            if not bracket:
+                await interaction.followup.send("⚠️ Failed to generate bracket.")
+                return
+
             if "error" in bracket:
-                await interaction.followup.send(
-                    f"⚠️ AI returned invalid JSON:\n```{bracket['raw'][:1500]}```"
-                )
+                logger.error(f"[Tournament] Bracket generation error: {bracket}")
+                await interaction.followup.send("⚠️ Error generating bracket.")
                 return
 
-            if "matches" not in bracket:
-                await interaction.followup.send("AI did not return valid bracket structure.")
+            if "matches" not in bracket or not bracket["matches"]:
+                logger.error("[Tournament] Bracket returned no matches.")
+                await interaction.followup.send("⚠️ No matches were generated.")
                 return
 
-            # 🔥 THIS IS THE IMPORTANT CHANGE
+            logger.info(f"[Tournament] Generated {len(bracket['matches'])} matches.")
+
+            # Start the tournament
             runner = TournamentRunner(interaction, bracket["matches"])
             await runner.start()
 
         except Exception as e:
-            logger.error(f"Seed from matchmaking error: {e}")
-            await interaction.followup.send("Error generating bracket.")
+
+            logger.exception(f"[Tournament] Seed from matchmaking failed: {e}")
+
+            # Send error message only when an actual exception occurs
+            try:
+                await interaction.followup.send("Error generating bracket.")
+            except:
+                pass
 
         finally:
             db.close_db()
