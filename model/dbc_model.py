@@ -665,6 +665,7 @@ class Matches(Tournament_DB):
             teamUp text,
             teamId text,
             date_played date,
+            matchmaking_session TEXT,
             FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,
             FOREIGN KEY (game_name) REFERENCES player (game_name) ON DELETE CASCADE
         )

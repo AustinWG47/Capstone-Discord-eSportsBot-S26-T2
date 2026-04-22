@@ -1,113 +1,163 @@
 import discord
-import asyncio
 from discord import Embed
 
 
+class MatchView(discord.ui.View):
+    def __init__(self, team1, team2, user):
+        super().__init__(timeout=300)
+        self.team1 = team1
+        self.team2 = team2
+        self.user = user
+        self.winner = None
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        return interaction.user == self.user
+
+    @discord.ui.button(label="Team 1 Wins", style=discord.ButtonStyle.primary)
+    async def team1_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.winner = 1
+        self.stop()
+        try:
+            await interaction.response.defer()
+        except:
+            pass
+
+    @discord.ui.button(label="Team 2 Wins", style=discord.ButtonStyle.danger)
+    async def team2_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.winner = 2
+        self.stop()
+        try:
+            await interaction.response.defer()
+        except:
+            pass
+
+
 class TournamentRunner:
-    """
-    Runs an interactive tournament bracket generated from AI (Ollama).
-    
-    Expected input format:
-    [
-        {
-            "match_id": "match_1",
-            "team1": {"team_name": str, "players": list[str]},
-            "team2": {"team_name": str, "players": list[str] | None}
-        }
-    ]
-    """
 
     def __init__(self, interaction: discord.Interaction, matches: list):
         self.interaction = interaction
-        self.matches = matches
-        self.results = {}  # match_id -> winner
+        self.current_matches = matches  # seeded bracket
+        self.results = {}
 
     async def start(self):
-        """Start running tournament matches sequentially."""
-        await self.interaction.followup.send("🏆 Starting tournament...")
 
-        for index, match in enumerate(self.matches):
-            await self.run_match(index + 1, match)
+        await self.interaction.followup.send("🏆 **Tournament Starting**")
 
-        await self.finish_tournament()
+        round_number = 1
+        matches = self.current_matches
 
-    async def run_match(self, match_number: int, match: dict):
-        match_id = match.get("match_id", f"match_{match_number}")
+        while True:
 
-        team1 = match.get("team1")
-        team2 = match.get("team2")
+            await self.interaction.followup.send(
+                f"⚔️ **Round {round_number}**"
+            )
 
-        # BYE handling
+            winners = []
+            next_round_matches = []
+
+            match_number = 1
+
+            for match in matches:
+
+                team1 = match["team1"]
+                team2 = match.get("team2")
+
+                winner = await self.run_match(
+                    round_number,
+                    match_number,
+                    team1,
+                    team2
+                )
+
+                winners.append(winner)
+                match_number += 1
+
+            #If only one winner → tournament done
+            if len(winners) == 1:
+                champion = winners[0]
+                await self.send_champion(champion)
+                return
+
+            #Build next round from winners
+            for i in range(0, len(winners), 2):
+
+                team1 = winners[i]
+                team2 = winners[i + 1] if i + 1 < len(winners) else None
+
+                next_round_matches.append({
+                    "team1": team1,
+                    "team2": team2
+                })
+
+            matches = next_round_matches
+            round_number += 1
+
+    async def run_match(self, round_number, match_number, team1, team2):
+
+        match_id = f"round{round_number}_match{match_number}"
+
+        #BYE handling
         if not team2:
+            embed = Embed(
+                title=f"Round {round_number} - Match {match_number}",
+                description=f"**{team1['team_name']}** advances with a BYE.",
+                color=discord.Color.green()
+            )
+
+            embed.add_field(
+                name="Players",
+                value="\n".join(team1.get("players", [])),
+                inline=False
+            )
+
+            await self.interaction.followup.send(embed=embed)
+
             self.results[match_id] = team1["team_name"]
-            await self.send_bye(match_number, team1)
-            return
+            return team1
 
-        embed = self.create_match_embed(match_number, match_id, team1, team2)
+        embed = self.create_match_embed(round_number, match_number, team1, team2)
 
-        message = await self.interaction.followup.send(embed=embed)
+        view = MatchView(team1, team2, self.interaction.user)
 
-        # Add reactions for winner selection
-        await message.add_reaction("1️⃣")
-        await message.add_reaction("2️⃣")
+        message = await self.interaction.followup.send(embed=embed, view=view)
 
-        winner = await self.wait_for_winner(message)
+        await view.wait()
 
-        if winner == 1:
-            self.results[match_id] = team1["team_name"]
-        else:
-            self.results[match_id] = team2["team_name"]
+        winner = view.winner if view.winner else 1
+        winning_team = team1 if winner == 1 else team2
 
-        await self.interaction.followup.send(
-            f"✅ Match `{match_id}` winner: **Team {winner}**"
+        self.results[match_id] = winning_team["team_name"]
+
+        embed.add_field(
+            name="🏆 Winner",
+            value=winning_team["team_name"],
+            inline=False
         )
 
-        await asyncio.sleep(1)
+        await message.edit(embed=embed, view=view)
 
-    async def wait_for_winner(self, message: discord.Message) -> int:
-        """Wait for admin to react with winner selection."""
+        return winning_team
 
-        def check(reaction, user):
-            return (
-                user == self.interaction.user and
-                reaction.message.id == message.id and
-                str(reaction.emoji) in ["1️⃣", "2️⃣"]
-            )
+    async def send_champion(self, champion):
 
-        try:
-            reaction, user = await self.interaction.client.wait_for(
-                "reaction_add",
-                timeout=300,
-                check=check
-            )
-
-            return 1 if str(reaction.emoji) == "1️⃣" else 2
-
-        except asyncio.TimeoutError:
-            await self.interaction.followup.send(
-                "⏱ Match timed out. Defaulting to Team 1."
-            )
-            return 1
-
-    async def send_bye(self, match_number: int, team: dict):
         embed = Embed(
-            title=f"Match {match_number} - BYE",
-            description=f"**{team['team_name']}** advances automatically.",
-            color=discord.Color.green()
+            title="🏆 Tournament Champion",
+            description=f"**{champion['team_name']}** wins the tournament!",
+            color=discord.Color.gold()
         )
 
         embed.add_field(
             name="Players",
-            value="\n".join(team.get("players", [])) or "None",
+            value="\n".join(champion.get("players", [])),
             inline=False
         )
 
         await self.interaction.followup.send(embed=embed)
 
-    def create_match_embed(self, match_number, match_id, team1, team2):
+    def create_match_embed(self, round_number, match_number, team1, team2):
+
         embed = Embed(
-            title=f"Match {match_number}",
-            description=f"Match ID: `{match_id}`",
+            title=f"Round {round_number} - Match {match_number}",
             color=discord.Color.blurple()
         )
 
@@ -123,20 +173,6 @@ class TournamentRunner:
             inline=True
         )
 
-        embed.set_footer(text="React 1️⃣ or 2️⃣ to choose the winner")
+        embed.set_footer(text="Click a button to choose the winner")
 
         return embed
-
-    async def finish_tournament(self):
-        """Announce final results."""
-        summary = "\n".join(
-            [f"🏆 {match}: {winner}" for match, winner in self.results.items()]
-        )
-
-        embed = Embed(
-            title="🏆 Tournament Complete",
-            description=summary or "No results recorded.",
-            color=discord.Color.gold()
-        )
-
-        await self.interaction.followup.send(embed=embed)

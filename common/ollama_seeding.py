@@ -5,9 +5,9 @@ import random
 OLLAMA_URL = "http://localhost:11434/api/chat"
 
 
-# -------------------------------------
+
 # PROMPT
-# -------------------------------------
+
 
 def generate_shuffle_prompt(team_names):
     return f"""
@@ -33,9 +33,6 @@ Teams:
 """
 
 
-# -------------------------------------
-# CLEAN MODEL OUTPUT
-# -------------------------------------
 
 def clean_ai_response(result: str):
 
@@ -56,9 +53,9 @@ def clean_ai_response(result: str):
     return result.strip()
 
 
-# -------------------------------------
-# CALL OLLAMA
-# -------------------------------------
+
+# ollama call
+
 
 def call_ollama(prompt):
 
@@ -87,9 +84,9 @@ def call_ollama(prompt):
     return data["message"]["content"]
 
 
-# -------------------------------------
-# SAFE AI SHUFFLE
-# -------------------------------------
+
+# AI shuffle
+
 
 def shuffle_teams_with_ai(team_names):
 
@@ -118,9 +115,9 @@ def shuffle_teams_with_ai(team_names):
     return team_names
 
 
-# -------------------------------------
-# BUILD BRACKET (DETERMINISTIC)
-# -------------------------------------
+
+# create bracket
+
 
 def build_bracket(team_objects, ordered_team_names):
 
@@ -148,22 +145,22 @@ def build_bracket(team_objects, ordered_team_names):
     return {"matches": matches}
 
 
-# -------------------------------------
-# MAIN FUNCTION
-# -------------------------------------
+
+#bracket generation
+
 
 def generate_bracket_with_ai(teams):
 
     if not teams or len(teams) < 2:
         return {"error": "Not enough teams"}
 
-    # extract names
+    #extract names
     team_names = [t["team_name"] for t in teams]
 
-    # AI shuffle
+    #AI shuffle
     shuffled_names = shuffle_teams_with_ai(team_names)
 
-    # deterministic bracket build
+    #deterministic bracket build
     bracket = build_bracket(teams, shuffled_names)
 
     return bracket
