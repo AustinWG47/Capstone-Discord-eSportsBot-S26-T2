@@ -7,6 +7,7 @@ from model.dbc_model import Tournament_DB
 from model.dbc_model import Teams
 from common.ollama_seeding import generate_bracket_with_ai
 from common.tournament_runner import TournamentRunner
+
 logger = settings.logging.getLogger("discord")
 
 
@@ -16,8 +17,7 @@ class Seeding(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    #/seed_demo (SAFE FALLBACK)
-    
+    # /seed_demo
     @app_commands.command(
         name="seed_demo",
         description="Generate demo tournament brackets with AI"
@@ -50,8 +50,7 @@ class Seeding(commands.Cog):
             logger.error(f"Seeding demo error: {e}")
             await interaction.followup.send("Error generating demo bracket.")
 
-    # /seed_real (DB INTEGRATION)
-    
+    # /seed_real
     @app_commands.command(
         name="seed_real",
         description="Generate tournament bracket using real DB teams"
@@ -87,43 +86,65 @@ class Seeding(commands.Cog):
         except Exception as e:
             logger.error(f"Seeding real error: {e}")
             await interaction.followup.send("Error generating real bracket.")
-            
+
+    # /seed_from_matchmaking
     @app_commands.command(
-    name="seed_from_matchmaking",
-    description="Generate bracket using latest matchmaking results"
-)
+        name="seed_from_matchmaking",
+        description="Generate bracket using latest matchmaking results"
+    )
     async def seed_from_matchmaking(self, interaction: discord.Interaction):
 
         db = Tournament_DB()
 
         try:
-            await interaction.response.defer()
+            try:
+                await interaction.response.defer(thinking=True)
+            except:
+                pass
 
-            # Fetch the most recent matchmaking session
+            logger.info("[DEBUG] Starting seed_from_matchmaking")
+
+            #Get latest matchmaking session
+            db.cursor.execute("""
+                SELECT DISTINCT matchmaking_session
+                FROM Matches
+                WHERE matchmaking_session IS NOT NULL
+                ORDER BY match_num DESC
+                LIMIT 1
+            """)
+
+            result = db.cursor.fetchone()
+            logger.info(f"[DEBUG] Session query result: {result}")
+
+            if not result:
+                await interaction.followup.send("No matchmaking session found.")
+                return
+
+            session_id = result[0]
+            logger.info(f"[DEBUG] Using session: {session_id}")
+
+            #Get teams from most recent session
             db.cursor.execute("""
                 SELECT m.teamId, m.teamUp, p.player_name
                 FROM Matches m
                 JOIN player p ON m.user_id = p.user_id
-                WHERE m.match_num = (
-                    SELECT MAX(match_num) FROM Matches
-                )
+                WHERE m.matchmaking_session = ?
                 AND m.teamUp IN ('team1','team2')
-                ORDER BY m.teamId, m.teamUp
-            """)
+                ORDER BY m.match_num, m.teamUp
+            """, (session_id,))
 
             rows = db.cursor.fetchall()
+            logger.info(f"[DEBUG] Rows fetched: {len(rows)}")
+            logger.debug(f"[DEBUG] Raw rows: {rows}")
 
             if not rows:
                 await interaction.followup.send("No matchmaking data found.")
                 return
 
-            logger.info(f"[Tournament] Retrieved {len(rows)} rows from matchmaking.")
-
-            # Build teams from database rows
+            #build teams
             teams = {}
 
             for team_id, team_up, player_name in rows:
-
                 key = f"{team_id}_{team_up}"
 
                 if key not in teams:
@@ -135,57 +156,64 @@ class Seeding(commands.Cog):
                 if player_name and player_name not in teams[key]["players"]:
                     teams[key]["players"].append(player_name)
 
+            logger.info(f"[DEBUG] Teams dict built: {len(teams)} teams")
+            logger.debug(f"[DEBUG] Teams dict: {teams}")
+
             ai_teams = [t for t in teams.values() if t["players"]]
 
-            logger.info(f"[Tournament] Reconstructed {len(ai_teams)} teams.")
-
-            # Debug print of reconstructed teams
-            logger.debug(f"[Tournament] Teams: {ai_teams}")
+            logger.info(f"[DEBUG] Filtered ai_teams count: {len(ai_teams)}")
+            logger.debug(f"[DEBUG] ai_teams: {ai_teams}")
 
             if len(ai_teams) < 2:
                 await interaction.followup.send("Not enough teams to generate bracket.")
                 return
 
-            # Generate bracket using AI shuffle + deterministic builder
+            logger.info("[DEBUG] Calling generate_bracket_with_ai")
+
             bracket = generate_bracket_with_ai(ai_teams)
+
+            logger.info(f"[DEBUG] Raw bracket response: {bracket}")
 
             if not bracket:
                 await interaction.followup.send("⚠️ Failed to generate bracket.")
                 return
 
             if "error" in bracket:
-                logger.error(f"[Tournament] Bracket generation error: {bracket}")
+                logger.error(f"[DEBUG] Bracket error: {bracket}")
                 await interaction.followup.send("⚠️ Error generating bracket.")
                 return
 
-            if "matches" not in bracket or not bracket["matches"]:
-                logger.error("[Tournament] Bracket returned no matches.")
+            if "matches" not in bracket:
+                logger.error(f"[DEBUG] Missing 'matches' key in bracket: {bracket}")
+                await interaction.followup.send("⚠️ Invalid bracket structure.")
+                return
+
+            if not bracket["matches"]:
+                logger.error("[DEBUG] Bracket returned empty matches list.")
                 await interaction.followup.send("⚠️ No matches were generated.")
                 return
 
-            logger.info(f"[Tournament] Generated {len(bracket['matches'])} matches.")
+            logger.info(f"[DEBUG] Final match count: {len(bracket['matches'])}")
 
-            # Start the tournament
             runner = TournamentRunner(interaction, bracket["matches"])
             await runner.start()
 
         except Exception as e:
+            logger.exception(f"[DEBUG] Seed from matchmaking crashed: {e}")
 
-            logger.exception(f"[Tournament] Seed from matchmaking failed: {e}")
-
-            # Send error message only when an actual exception occurs
             try:
-                await interaction.followup.send("Error generating bracket.")
+                await interaction.followup.send(f"❌ ERROR:\n```{str(e)}```")
             except:
                 pass
 
         finally:
             db.close_db()
 
+    #/start_tournament
     @app_commands.command(
-    name="start_tournament",
-    description="Start a tournament with interactive bracket UI"
-)
+        name="start_tournament",
+        description="Start a tournament with interactive bracket UI"
+    )
     async def start_tournament(self, interaction: discord.Interaction):
 
         try:
@@ -206,16 +234,14 @@ class Seeding(commands.Cog):
                 )
                 return
 
-            # Start interactive tournament
             runner = TournamentRunner(interaction, bracket["matches"])
             await runner.start()
 
         except Exception as e:
             logger.error(f"Tournament start error: {e}")
-        await interaction.followup.send("Error starting tournament.")
+            await interaction.followup.send("Error starting tournament.")
 
 
-# Setup
+#Setup
 async def setup(bot: commands.Bot):
     await bot.add_cog(Seeding(bot))
-

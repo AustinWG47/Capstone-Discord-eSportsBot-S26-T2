@@ -22,12 +22,12 @@ class MatchmakingController(commands.Cog):
             self.selected_players = []
             self.is_complete = False
 
-            # Add player select menu
+            #Add player select menu
             self._add_player_select()
             self._add_action_buttons()
 
         def _add_player_select(self):
-            # Create a select menu with player options
+            #Create a select menu with player options
             options = []
             for player in self.players[:25]:  # Discord has a 25-option limit
                 player_name = player.get('player_name', str(player.get('user_id')))
@@ -42,7 +42,7 @@ class MatchmakingController(commands.Cog):
                 )
                 options.append(option)
 
-            # Create select menu
+            #Create select menu
             select = discord.ui.Select(
                 placeholder="Select players to sit out...",
                 min_values=0,
@@ -50,14 +50,14 @@ class MatchmakingController(commands.Cog):
                 options=options
             )
 
-            # Add callback
+            #Add callback
             select.callback = self.select_callback
 
-            # Add select to view
+            #Add select to view
             self.add_item(select)
 
         def _add_action_buttons(self):
-            # Add a "Done" button
+            #Add a "Done" button
             done_button = discord.ui.Button(
                 label=f"Confirm Selection ({len(self.selected_players)}/{self.needed_count})",
                 style=discord.ButtonStyle.primary,
@@ -77,18 +77,18 @@ class MatchmakingController(commands.Cog):
             self.add_item(random_button)
 
         async def select_callback(self, interaction):
-            # Get selected player IDs from select menu
+            #Get selected player IDs from select menu
             selected_ids = [int(value) for value in interaction.data['values']]
 
-            # Update selected players list
+            #Update selected players list
             self.selected_players = [p for p in self.players if p.get('user_id') in selected_ids]
 
-            # Clear and rebuild the view
+            #Clear and rebuild the view
             self.clear_items()
             self._add_player_select()
             self._add_action_buttons()
 
-            # Update the message
+            #Update the message
             await interaction.response.edit_message(
                 content=f"Select {self.needed_count} volunteers to sit out (receiving participation points).\n"
                         f"Currently selected: {len(self.selected_players)}/{self.needed_count}",
@@ -116,12 +116,12 @@ class MatchmakingController(commands.Cog):
                 )
 
         async def random_callback(self, interaction):
-            # Select players randomly
+            #Select players randomly
             self.selected_players = random.sample(self.players, self.needed_count)
             self.is_complete = True
             self.stop()
 
-            # Create a list of selected player names
+            #Create a list of selected player names
             player_names = [f"{p.get('game_name')} ({p.get('tier', '').capitalize()} {p.get('rank', '')})"
                             for p in self.selected_players]
 
@@ -138,7 +138,7 @@ class MatchmakingController(commands.Cog):
             db = Tournament_DB()
 
             try:
-                # Get all players
+                #Get all players
                 db.cursor.execute("""
                     SELECT p.user_id, p.player_name, p.tag_id, g.tier, g.rank 
                     FROM player p
@@ -163,17 +163,17 @@ class MatchmakingController(commands.Cog):
                     )
                     return
 
-                # Mark some players as "volunteering"
+                #Mark some players as "volunteering"
                 volunteers = random.sample(all_players, count)
 
-                # Create a volunteer table for demo
+                #Create a volunteer table for demo
                 volunteer_embed = discord.Embed(
                     title=f"Simulated Volunteers ({count} players)",
                     color=discord.Color.green(),
                     description="These players have volunteered to sit out and receive participation points."
                 )
 
-                # Role color mapping (using League of Legends colors)
+                #Role color mapping (using League of Legends colors)
                 role_colors = {
                     "top": "🟥",      # Red
                     "jungle": "🟩",   # Green
@@ -189,14 +189,14 @@ class MatchmakingController(commands.Cog):
                     tier = player.get('tier', 'unknown').capitalize()
                     rank = player.get('rank', '')
                     
-                    # Try to get roles
+                    #Try to get roles
                     db.cursor.execute(
                         "SELECT role FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
                         (player.get('user_id'),)
                     )
                     role_result = db.cursor.fetchone()
                     
-                    # Format roles with colors
+                    #Format roles with colors
                     colored_roles = []
                     if role_result and role_result[0]:
                         try:
@@ -221,17 +221,17 @@ class MatchmakingController(commands.Cog):
                         inline=True
                     )
 
-                # Record volunteers in database with "volunteer" status
+                #Record volunteers in database with "volunteer" status
                 session_id = f"volunteer_session_{int(asyncio.get_event_loop().time())}"
-                # Get the next match ID for the volunteer session
+                #Get the next match ID for the volunteer session
                 from model.dbc_model import Matches
                 matches_db = Matches(db_name=settings.DATABASE_NAME)
                 volunteer_match_num = matches_db.get_next_match_id()
                 for player in volunteers:
                     user_id = player.get('user_id')
                     if user_id:
-                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, player_name) VALUES(?, ?, ?, ?, ?)"
-                        db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num, "League of Legends"))
+                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                        db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num, "League of Legends", session_id))
 
                 db.connection.commit()
                 db.close_db()
@@ -264,13 +264,16 @@ class MatchmakingController(commands.Cog):
             await interaction.response.defer(thinking=True)
 
             try:
-                # Get all eligible players
+                #Get all eligible players
                 db = Tournament_DB()
+                
+                import uuid
+                session_id = f"session_{uuid.uuid4().hex[:8]}"
                 
                 all_players = []
 
                 try:
-                    # Get all players with game data
+                    #Get all players with game data
                     db.cursor.execute("""
                         SELECT p.user_id,p.player_name, p.game_name, p.tag_id, g.tier, g.rank, g.role, g.wins, g.losses, g.wr, g.manual_tier
                         FROM player p
@@ -305,7 +308,7 @@ class MatchmakingController(commands.Cog):
                     for record in player_records:
                         user_id, player_name, game_name, tag_id, tier, rank, role_json, wins, losses, wr, manual_tier = record
 
-                        # Parse role preferences
+                        #Parse role preferences
                         roles = []
                         if role_json:
                             try:
@@ -337,7 +340,7 @@ class MatchmakingController(commands.Cog):
                     db.close_db()
                     return
 
-                # Calculate how many games we can run and if we need players to sit out
+                #Calculate how many games we can run and if we need players to sit out
                 total_players = len(all_players)
 
                 if total_players < players_per_game:
@@ -356,7 +359,7 @@ class MatchmakingController(commands.Cog):
                     f"{extra_players} players will sit out and receive participation points."
                 )
 
-                # If we have extra players, determine who sits out
+                #If we have extra players, determine who sits out
                 players_to_exclude = []
                 participation_players = []
 
@@ -407,7 +410,7 @@ class MatchmakingController(commands.Cog):
                             )
 
                     else:  # Default to random
-                        # Randomly select players to sit out
+                        #Randomly select players to sit out
                         random_players = random.sample(all_players, extra_players)
                         for player in random_players:
                             players_to_exclude.append(player['player_name'])
@@ -417,10 +420,10 @@ class MatchmakingController(commands.Cog):
                             f"**Using random selection:** {extra_players} randomly selected players will sit out but receive participation points."
                         )
 
-                # Remove excluded players
+                #Remove excluded players
                 filtered_players = [p for p in all_players if p['player_name'] not in players_to_exclude]
 
-                # Split players into pools based on skill
+                #Split players into pools based on skill
                 filtered_players.sort(key=lambda p: (
                     {'challenger': 1, 'grandmaster': 2, 'master': 3, 'diamond': 4, 'emerald': 5,
                      'platinum': 6, 'gold': 7, 'silver': 8, 'bronze': 9, 'iron': 10}.get(p['tier'], 11),
@@ -428,7 +431,7 @@ class MatchmakingController(commands.Cog):
                     -p.get('wr', 0)
                 ))
 
-                # Create pools for skill-based games
+                #Create pools for skill-based games
                 pools = []
                 for i in range(game_count):
                     start_idx = i * players_per_game
@@ -436,24 +439,24 @@ class MatchmakingController(commands.Cog):
                     pool = filtered_players[start_idx:end_idx]
                     pools.append(pool)
 
-                # Run matchmaking for each pool
+                #Run matchmaking for each pool
                 results = []
                 matchmaker = GeneticMatchMaking()
 
                 for pool_idx, pool in enumerate(pools):
-                    # Get the next match ID
+                    #Get the next match ID
                     from model.dbc_model import Matches
                     matches_db = Matches(db_name=settings.DATABASE_NAME)
                     match_num = matches_db.get_next_match_id()
                     match_id = f"match_{match_num}"
 
-                    # Split pool into balanced teams
+                    #Split pool into balanced teams
                     team1, team2 = [], []
 
-                    # Process players with performance metrics
+                    #Process players with performance metrics
                     processed_players = await matchmaker.calculate_performance(pool)
 
-                    # Run matchmaking
+                    #Run matchmaking
                     best_chromosome, best_fitness = matchmaker.genetic_algorithm(
                         processed_players,
                         population_size=100,
@@ -468,36 +471,36 @@ class MatchmakingController(commands.Cog):
                             team_size=players_per_game // 2
                         )
                     else:
-                        # Fallback: simple alternating assignment
+                        #Fallback: simple alternating assignment
                         for i, player in enumerate(pool):
                             if i % 2 == 0:
                                 team1.append(player)
                             else:
                                 team2.append(player)
 
-                    # Record match in database
+                    #Record match in database
                     for player in team1:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team1", match_id, match_num, "League of Legends"))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team1", match_id, match_num, "League of Legends", session_id))
 
                     for player in team2:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team2", match_id, match_num, "League of Legends"))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team2", match_id, match_num, "League of Legends", session_id))
 
-                    # Calculate team metrics
+                    #Calculate team metrics
                     team1_perf = matchmaker.team_performance(team1)
                     team2_perf = matchmaker.team_performance(team2)
                     diff = abs(team1_perf - team2_perf)
                     
-                    # Calculate role matchup score for display
+                    #Calculate role matchup score for display
                     role_matchup_score = matchmaker.calculate_role_matchup_score(team1, team2)
                     role_matchup_percent = round(role_matchup_score * 100)
 
-                    # Create embeds for the teams
+                    #Create embeds for the teams
                     team1_embed = discord.Embed(
                         title=f"Game {pool_idx + 1} - Team 1 (Match ID: {match_id})",
                         color=discord.Color.blue(),
@@ -510,7 +513,7 @@ class MatchmakingController(commands.Cog):
                         description=f"Game {pool_idx + 1} of {game_count}\nRole Matchup Balance: {role_matchup_percent}%"
                     )
 
-                    # Role color mapping (using League of Legends colors)
+                    #Role color mapping (using League of Legends colors)
                     role_colors = {
                         "top": "🟥",      # Red
                         "jungle": "🟩",   # Green
@@ -521,14 +524,14 @@ class MatchmakingController(commands.Cog):
                         "forced": "⬛"     # Black/forced
                     }
                     
-                    # Add players to embeds
+                    #Add players to embeds
                     for i, player in enumerate(team1):
                         name = player.get('player_name', player.get('user_id', 'Unknown'))
                         tier = player.get('tier', 'Unknown').capitalize()
                         rank = player.get('rank', '')
                         roles = player.get('role', [])
                         
-                        # Format roles with colors
+                        #Format roles with colors
                         colored_roles = []
                         for role in roles:
                             role_lower = role.lower()
@@ -537,11 +540,11 @@ class MatchmakingController(commands.Cog):
                         
                         role_str = '  '.join(colored_roles) if colored_roles else 'None'
 
-                        # Use the assigned_role from genetic algorithm if available
+                        #Use the assigned_role from genetic algorithm if available
                         if "assigned_role" in player:
                             assigned_role = player["assigned_role"]
                         else:
-                            # Fallback to first role preference
+                            #Fallback to first role preference
                             assigned_role = roles[0] if roles else "TBD"
                             logger.warning(f"Player {name} missing assigned_role, using first preference")
                         
@@ -561,7 +564,7 @@ class MatchmakingController(commands.Cog):
                         rank = player.get('rank', '')
                         roles = player.get('role', [])
                         
-                        # Format roles with colors
+                        #Format roles with colors
                         colored_roles = []
                         for role in roles:
                             role_lower = role.lower()
@@ -570,11 +573,11 @@ class MatchmakingController(commands.Cog):
                         
                         role_str = '  '.join(colored_roles) if colored_roles else 'None'
 
-                        # Use the assigned_role from genetic algorithm if available
+                        #Use the assigned_role from genetic algorithm if available
                         if "assigned_role" in player:
                             assigned_role = player["assigned_role"]
                         else:
-                            # Fallback to first role preference
+                            #Fallback to first role preference
                             assigned_role = roles[0] if roles else "TBD"
                             logger.warning(f"Player {name} missing assigned_role, using first preference")
                         
@@ -588,15 +591,15 @@ class MatchmakingController(commands.Cog):
                             inline=True
                         )
 
-                    # Add metrics to embeds
+                    #Add metrics to embeds
                     team1_embed.set_footer(text=f"Team 1 Performance: {team1_perf:.2f}")
                     team2_embed.set_footer(text=f"Team 2 Performance: {team2_perf:.2f}")
 
-                    # Create role matchup comparison
+                    #Create role matchup comparison
                     standard_roles = ["top", "jungle", "mid", "bottom", "support"]
                     role_matchup_text = "**Role Matchups:**\n"
                     
-                    # Get role emoji mapping
+                    #Get role emoji mapping
                     role_emoji_map = {
                         "top": "🟥 Top",
                         "jungle": "🟩 Jungle",
@@ -620,7 +623,7 @@ class MatchmakingController(commands.Cog):
                             role_display = role_emoji_map.get(role, role.capitalize())
                             role_matchup_text += f"{role_display}: {team1_name} ({team1_tier} {team1_rank}) vs {team2_name} ({team2_tier} {team2_rank})\n"
                     
-                    # Instructions for recording match outcome
+                    #Instructions for recording match outcome
                     instructions = (
                         f"**Matchmaking - Game {pool_idx + 1} of {game_count}**\n"
                         f"Match ID: `{match_id}`\n"
@@ -638,28 +641,28 @@ class MatchmakingController(commands.Cog):
                         "instructions": instructions
                     })
 
-                # Record participation points for excluded players
+                #Record participation points for excluded players
                 if participation_players:
                     participation_id = f"participation_{int(asyncio.get_event_loop().time())}"
-                    # Get the next match ID for the participation session
+                    #Get the next match ID for the participation session
                     from model.dbc_model import Matches
                     matches_db = Matches(db_name=settings.DATABASE_NAME)
                     participation_match_num = matches_db.get_next_match_id()
                     for player in participation_players:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num, "League of Legends"))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num, "League of Legends", session_id))
 
-                # Commit all changes to database
+                #Commit all changes to database
                 db.connection.commit()
                 db.close_db()
 
-                # Send results for each game
+                #Send results for each game
                 for result in results:
                     await interaction.followup.send(content=result["instructions"], embeds=result["embeds"])
 
-                # If there were participation players, show them too
+                #If there were participation players, show them too
                 if participation_players:
                     participation_embed = discord.Embed(
                         title="Players Receiving Participation Points",
