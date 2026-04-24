@@ -8,6 +8,7 @@ import json
 logger = settings.logging.getLogger("discord")
 
 class Tournament_DB:
+
     def __init__(self, db_name=settings.DATABASE_NAME):
         self.db_name = db_name
         self.connection = None
@@ -18,7 +19,7 @@ class Tournament_DB:
     #The default out put of sqlit3 is a list of tubles
     #Inorder to get list of dictionary data format, we use row_factory
     def db_connect(self):
-        self.connection = sqlite3.connect(self.db_name)
+        self.connection = sqlite3.connect(self.db_name, timeout=30)
         # self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
 
@@ -621,6 +622,7 @@ class Game(Tournament_DB):
             rank text,
             wins integer,
             losses integer,
+            kda float,
             wr float generated always as (wins * 1.0 / (wins + losses)*100) stored,
             game_date text default (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES player (user_id) ON DELETE CASCADE,

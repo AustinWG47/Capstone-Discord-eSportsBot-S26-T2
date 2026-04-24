@@ -12,6 +12,89 @@ init(autoreset=True)
 
 logger = settings.logging.getLogger("discord")
 
+class RankSelect(discord.ui.Select):
+    def __init__(self, game: str, player_id: int):
+        self.game = game.lower()
+        self.player_id = player_id
+
+        if "league of legends" in self.game:
+            options = [
+                discord.SelectOption(label="Iron"),
+                discord.SelectOption(label="Bronze"),
+                discord.SelectOption(label="Silver"),
+                discord.SelectOption(label="Gold"),
+                discord.SelectOption(label="Platinum"),
+                discord.SelectOption(label="Diamond"),
+                discord.SelectOption(label="Master"),
+                discord.SelectOption(label="Challenger"),
+            ]
+
+        elif "marvel rivals" in self.game:
+            options = [
+                discord.SelectOption(label="Bronze"),
+                discord.SelectOption(label="Silver"),
+                discord.SelectOption(label="Gold"),
+                discord.SelectOption(label="Platinum"),
+                discord.SelectOption(label="Diamond"),
+                discord.SelectOption(label="Grandmaster"),
+            ]
+
+        else:
+            options = [
+                discord.SelectOption(label="Unranked")
+            ]
+
+        super().__init__(
+            placeholder=f"Select rank for {self.game}",
+            options=options,
+            min_values=1,
+            max_values=1
+        )
+
+
+    async def callback(self, interaction: discord.Interaction):
+        rank = self.values[0]
+
+        db = dbc_model.Tournament_DB()
+        cursor = db.cursor
+
+        if self.game == "league of legends":
+            cursor.execute(
+                """
+                UPDATE league_game_details
+                SET rank = ?
+                WHERE user_id IN (
+                SELECT user_id FROM player WHERE user_id = ?
+                )
+                """,
+                (rank, self.player_id)
+            )   
+
+        elif self.game == "marvel rivals":
+            cursor.execute(
+                """
+                UPDATE mr_game_details
+                SET rank = ?
+                WHERE user_id IN (
+                SELECT user_id FROM player WHERE user_id = ?
+                )
+                """,
+                (rank, self.player_id)
+            )   
+
+        db.connection.commit()
+        db.close_db()
+
+        await interaction.response.send_message(
+            f"Rank saved: **{rank}** for {self.game}",
+            ephemeral=True
+        )
+
+class RankView(discord.ui.View):
+    def __init__(self, game: str, player_id: int):
+        super().__init__(timeout=120)
+        self.add_item(RankSelect(game, player_id))
+
 class GameSelect(discord.ui.Select):
     def __init__(self):
         super().__init__(
@@ -47,7 +130,6 @@ class RegisterModal(discord.ui.Modal, title="Registration"):
             required=True,
             placeholder="Enter your player name"
         )
-        self.add_item(self.player_name)
 
         # Tag ID input
         self.tag_id = discord.ui.TextInput(
@@ -56,6 +138,16 @@ class RegisterModal(discord.ui.Modal, title="Registration"):
             required=True,
             placeholder="Enter your tag ID"
         )
+
+        # COD ONLY
+        self.kda = discord.ui.TextInput(
+            label="K/D/A (Call of Duty only)",
+            required=False,
+            placeholder="e.g. 1.20 / 2.5 / 0.8"
+        )
+
+        self.add_item(self.player_name)
+        self.add_item(self.kda)
         self.add_item(self.tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -74,9 +166,40 @@ class RegisterModal(discord.ui.Modal, title="Registration"):
                 interaction=interaction,
                 gamename=self.game_name,
                 playername=self.player_name.value.strip(),
-                tagid=self.tag_id.value.strip()
+                tagid=self.tag_id.value.strip(),
             )
             db.close_db()
+
+            if self.game_name == "call of duty":
+
+                await interaction.response.send_message(
+                    f"{interaction.user.mention}, registration complete!",
+                    embed=discord.Embed(
+                        title="Check-in Summary",
+                        description=(
+                            f"**Game:** Call Of Duty\n"
+                            f"**Player:** {self.player_name.value.strip()}\n"
+                            f"**Tag ID:** {self.tag_id.value.strip()}\n"
+                            f"**K/D/A:** {self.kda.value.strip() if self.kda.value else 'N/A'}"
+                        ),
+                        color=discord.Color.yellow()
+                    )
+                )
+                return
+            
+            await interaction.response.send_message(
+                "Registration complete. Now select your rank:",
+                view=RankView(self.game_name, interaction.user.id),
+                ephemeral=True
+            )
+
+        except Exception as ex:
+            logger.error(f"Registration failed: {ex}")
+
+            await interaction.response.send_message(
+                "An error occurred during registration.",
+                ephemeral=True
+            )
 
             # Create a summary embed
             embed = discord.Embed(
@@ -111,7 +234,6 @@ class RegisterModal(discord.ui.Modal, title="Registration"):
             await interaction.response.send_message(
                 "An unexpected error occurred.", ephemeral=True
             )
-
 
 class PreferenceSelect(discord.ui.Select):
     def __init__(self):
