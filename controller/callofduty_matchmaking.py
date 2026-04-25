@@ -95,6 +95,9 @@ class CODMatchmakingController(commands.Cog):
                 
                 all_players = []
 
+                import uuid
+                session_id = f"session_{uuid.uuid4().hex[:8]}"
+
                 try:
                     # Get all players with game data
                     db.cursor.execute("""
@@ -208,14 +211,14 @@ class CODMatchmakingController(commands.Cog):
                     for player in team1:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team1", match_id, match_num, "Call Of Duty"))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team1", match_id, match_num, "Call Of Duty", session_id))
 
                     for player in team2:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "team2", match_id, match_num, "Call Of Duty"))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "team2", match_id, match_num, "Call Of Duty", session_id))
 
 
                     # Create embeds for the teams
@@ -279,8 +282,8 @@ class CODMatchmakingController(commands.Cog):
                     for player in participation_players:
                         user_id = player.get('user_id')
                         if user_id:
-                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name) VALUES(?, ?, ?, ?, ?)"
-                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num, "Call Of Duty"))
+                            query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+                            db.cursor.execute(query, (user_id, "participation", participation_id, participation_match_num, "Call Of Duty", session_id))
 
                 # Commit all changes to database
                 db.connection.commit()
