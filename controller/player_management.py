@@ -48,7 +48,13 @@ class PlayerManagement(commands.Cog):
             db = Tournament_DB()
             try:
                 # Get all players from database
-                all_players = Player.get_all_player(db)
+                query = """
+                select user_id, player_name, tag_id, game_name
+                from player
+                """
+    
+                db.cursor.execute(query)
+                all_players = db.cursor.fetchall()
 
                 if not all_players or len(all_players) == 0:
                     await interaction.response.send_message("No players registered yet.")
@@ -65,115 +71,7 @@ class PlayerManagement(commands.Cog):
                     user_id, player_name, tag_id, game_name = player
 
                     # Try to get player stats from game table
-                    try:
-                        db.cursor.execute(
-                            "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
-                            (user_id,)
-                        )
-                        game_data = db.cursor.fetchone()
-
-                        if game_data:
-                            role_data, tier, rank, wins, losses, win_rate, manual_tier = game_data
-
-                            # Role color mapping (using League of Legends colors)
-                            role_colors = {
-                                "top": "🟥",      # Red
-                                "jungle": "🟩",   # Green
-                                "mid": "🟨",      # Yellow
-                                "bottom": "🟦",   # Blue
-                                "support": "🟪",  # Purple
-                                "tbd": "⬜",      # White/empty
-                                "forced": "⬛"     # Black/forced
-                            }
-                            
-                            # Parse role preferences
-                            role_str = "None"
-                            if role_data:
-                                try:
-                                    roles = json.loads(role_data)
-                                    if isinstance(roles, list):
-                                        colored_roles = []
-                                        for role in roles:
-                                            role_lower = role.lower()
-                                            role_emoji = role_colors.get(role_lower, "⬜")
-                                            colored_roles.append(f"{role_emoji} {role.capitalize()}")
-                                        role_str = "  ".join(colored_roles)
-                                    else:
-                                        role_str = str(roles)
-                                except:
-                                    role_str = str(role_data)
-
-                            # Format tier and rank
-                            tier_str = tier.capitalize() if tier else "Unranked"
-                            rank_str = rank if rank else ""
-
-                            # Calculate win rate if not provided
-                            if win_rate is None and wins is not None and losses is not None:
-                                total_games = wins + losses
-                                if total_games > 0:
-                                    win_rate = (wins / total_games) * 100
-                                else:
-                                    win_rate = 0
-
-                            # Format stats string
-                            stats = f"**Rank:** {tier_str} {rank_str}\n"
-                            
-                            # Add manual tier if available
-                            if manual_tier is not None:
-                                stats += f"**Manual Tier:** {manual_tier:.1f}/10\n"
-                            
-                            if wins is not None and losses is not None:
-                                total_games = wins + losses
-                                # Calculate win rate if not already provided
-                                if win_rate is None and total_games > 0:
-                                    win_rate = (wins / total_games) * 100
-                                
-                                win_rate_str = f" ({win_rate:.1f}%)" if win_rate is not None else ""
-                                stats += f"**Record:** {wins}W {losses}L{win_rate_str}"
-
-                            # Add player to embed (up to 15 players per embed)
-                            if i < 15:
-                                embed.add_field(
-                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
-                                    value=f"**ID:** {tag_id}\n{stats}\n**Roles:** {role_str}",
-                                    inline=True
-                                )
-                        else:
-                            # Fallback if no game data exists
-                            if i < 15:
-                                embed.add_field(
-                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
-                                    value=f"**ID:** {tag_id}\nNo game data available",
-                                    inline=True
-                                )
-                    except Exception as ex:
-                        logger.error(f"Error retrieving data for player {user_id}: {ex}")
-                        if i < 15:
-                            embed.add_field(
-                                name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
-                                value=f"**ID:** {tag_id}\nError retrieving player data",
-                                inline=True
-                            )
-
-                await interaction.response.send_message(embed=embed)
-
-                # If there are more than 15 players, send additional messages
-                if len(all_players) > 15:
-                    remaining_embeds = []
-                    current_embed = None
-
-                    for i in range(15, len(all_players)):
-                        # Create a new embed every 15 players
-                        if i % 15 == 0:
-                            current_embed = discord.Embed(
-                                title=f"Registered Players (Continued {i // 15 + 1})",
-                                color=discord.Color.blue()
-                            )
-                            remaining_embeds.append(current_embed)
-
-                        user_id, player_name, tag_id, game_name = player = all_players[i]
-
-                        # Get player stats
+                    if game_name.lower() == "league of legends":
                         try:
                             db.cursor.execute(
                                 "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
@@ -230,7 +128,7 @@ class PlayerManagement(commands.Cog):
                                 # Add manual tier if available
                                 if manual_tier is not None:
                                     stats += f"**Manual Tier:** {manual_tier:.1f}/10\n"
-                                    
+                                
                                 if wins is not None and losses is not None:
                                     total_games = wins + losses
                                     # Calculate win rate if not already provided
@@ -240,21 +138,201 @@ class PlayerManagement(commands.Cog):
                                     win_rate_str = f" ({win_rate:.1f}%)" if win_rate is not None else ""
                                     stats += f"**Record:** {wins}W {losses}L{win_rate_str}"
 
-                                current_embed.add_field(
-                                    name=f"{game_name}",
-                                    value=f"**ID:** {tag_id}\n{stats}\n**Roles:** {role_str}",
+                                # Add player to embed (up to 15 players per embed)
+                                if i < 15:
+                                    embed.add_field(
+                                        name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                        value=f"**ID:** {tag_id}\n{stats}\n**Roles:** {role_str}",
+                                        inline=True
+                                    )
+                            else:
+                                # Fallback if no game data exists
+                                if i < 15:
+                                    embed.add_field(
+                                        name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                        value=f"**ID:** {tag_id}\nNo game data available",
+                                        inline=True
+                                    )
+                        except Exception as ex:
+                            logger.error(f"Error retrieving data for player {user_id}: {ex}")
+                            if i < 15:
+                                embed.add_field(
+                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                    value=f"**ID:** {tag_id}\nError retrieving player data",
                                     inline=True
                                 )
+                    elif game_name.lower() == "call of duty":
+                        db.cursor.execute(
+                            "SELECT kda FROM cod_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                            (user_id,))
+                        game_data = db.cursor.fetchone()
+                        kda = "N/A"
+
+                        if game_data and game_data[0] is not None:
+                            kda = f"{game_data[0]:.2f}" 
+                        if i < 15:
+                            embed.add_field(
+                                name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                value=f"**ID:** {tag_id}\n**KDA:** {kda}",
+                                inline=True
+                            )
+                    elif game_name.lower() == "marvel rivals":
+                        db.cursor.execute(
+                            "SELECT tier, rank FROM mr_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                            (user_id,))
+                        game_data = db.cursor.fetchone()
+                        
+                        tier = "Unranked"
+                        rank = ""
+
+                        if game_data:
+                            tier, rank = game_data
+
+                        rank_display = f"{tier} {rank}".strip()
+
+                        if i < 15:
+                            embed.add_field(
+                                name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                value=f"**ID:** {tag_id}\n**Rank:** {rank_display}",
+                                inline=True
+                            )
+                await interaction.response.send_message(embed=embed)
+
+                # If there are more than 15 players, send additional messages
+                if len(all_players) > 15:
+                    remaining_embeds = []
+                    current_embed = None
+
+                    for i in range(15, len(all_players)):
+                    # Create a new embed every 15 players
+                        if i % 15 == 0:
+                            current_embed = discord.Embed(
+                                title=f"Registered Players (Continued {i // 15 + 1})",
+                                color=discord.Color.blue()
+                            )
+                            remaining_embeds.append(current_embed)
+
+                        user_id, player_name, tag_id, game_name = all_players[i]
+                        game_lower = game_name.lower()
+
+                        try:
+                            if game_lower == "league of legends":
+                                db.cursor.execute(
+                                    "SELECT role, tier, rank, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                                    (user_id,)
+                                )
+                                game_data = db.cursor.fetchone()
+
+                                if game_data:
+                                    role_data, tier, rank, wins, losses, win_rate, manual_tier = game_data
+
+                                    role_colors = {
+                                        "top": "🟥",
+                                        "jungle": "🟩",
+                                        "mid": "🟨",
+                                        "bottom": "🟦",
+                                        "support": "🟪",
+                                        "tbd": "⬜",
+                                        "forced": "⬛"
+                                    }
+
+                                    role_str = "None"
+                                    if role_data:
+                                        try:
+                                            roles = json.loads(role_data)
+                                            if isinstance(roles, list):
+                                                colored_roles = []
+                                                for role in roles:
+                                                    role_lower = role.lower()
+                                                    role_emoji = role_colors.get(role_lower, "⬜")
+                                                    colored_roles.append(f"{role_emoji} {role.capitalize()}")
+                                                role_str = "  ".join(colored_roles)
+                                            else:
+                                                role_str = str(roles)
+                                        except:
+                                            role_str = str(role_data)
+
+                                    tier_str = tier.capitalize() if tier else "Unranked"
+                                    rank_str = rank if rank else ""
+
+                                    if win_rate is None and wins is not None and losses is not None:
+                                        total_games = wins + losses
+                                        if total_games > 0:
+                                            win_rate = (wins / total_games) * 100
+                                        else:
+                                            win_rate = 0
+
+                                    stats = f"**Rank:** {tier_str} {rank_str}\n"
+                                    if manual_tier is not None:
+                                        stats += f"**Manual Tier:** {manual_tier:.1f}/10\n"
+
+                                    if wins is not None and losses is not None:
+                                        total_games = wins + losses
+                                        if win_rate is None and total_games > 0:
+                                            win_rate = (wins / total_games) * 100
+
+                                        win_rate_str = f" ({win_rate:.1f}%)" if win_rate is not None else ""
+                                        stats += f"**Record:** {wins}W {losses}L{win_rate_str}"
+
+                                    current_embed.add_field(
+                                        name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                        value=f"**ID:** {tag_id}\n{stats}\n**Roles:** {role_str}",
+                                        inline=True
+                                    )
+                                else:
+                                    current_embed.add_field(
+                                        name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                        value=f"**ID:** {tag_id}\nNo game data available",
+                                        inline=True
+                                    )
+                            elif game_lower == "call of duty":
+                                db.cursor.execute(
+                                    "SELECT kda FROM cod_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                                    (user_id,)
+                                )
+                                game_data = db.cursor.fetchone()
+
+                                kda = "N/A"
+                                if game_data and game_data[0] is not None:
+                                    kda = f"{game_data[0]:.2f}"
+
+                                current_embed.add_field(
+                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                    value=f"**ID:** {tag_id}\n**KDA:** {kda}",
+                                    inline=True
+                                )
+
+                            elif game_lower == "marvel rivals":
+                                db.cursor.execute(
+                                    "SELECT tier, rank FROM mr_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+                                    (user_id,)
+                                )
+                                game_data = db.cursor.fetchone()
+
+                                tier = "Unranked"
+                                rank = ""
+
+                                if game_data:
+                                    tier, rank = game_data
+
+                                rank_display = f"{tier} {rank}".strip()
+
+                                current_embed.add_field(
+                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
+                                    value=f"**ID:** {tag_id}\n**Rank:** {rank_display}",
+                                    inline=True
+                                )
+
                             else:
                                 current_embed.add_field(
-                                    name=f"{game_name}",
+                                    name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
                                     value=f"**ID:** {tag_id}\nNo game data available",
                                     inline=True
                                 )
                         except Exception as ex:
                             logger.error(f"Error retrieving data for player {user_id}: {ex}")
                             current_embed.add_field(
-                                name=f"{game_name}",
+                                name=f"**Game:** {game_name}\n**Player Name:** {player_name}",
                                 value=f"**ID:** {tag_id}\nError retrieving player data",
                                 inline=True
                             )
@@ -264,12 +342,17 @@ class PlayerManagement(commands.Cog):
 
             except Exception as ex:
                 logger.error(f"Error listing players: {ex}")
+                
                 await interaction.response.send_message(f"Error listing players: {str(ex)}")
+
             finally:
                 db.close_db()
+
         else:
-            await interaction.response.send_message("Sorry, you don't have required permission to use this command",
-                                                  ephemeral=True)
+            await interaction.response.send_message(
+                "Sorry, you don't have required permission to use this command",
+                ephemeral=True
+            )
 
     @app_commands.command(name="player_match_history", description="View a player's match history")
     @app_commands.describe(player_name="The summoner name of the player to look up")

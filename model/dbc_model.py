@@ -305,7 +305,7 @@ class Player(Tournament_DB):
             logger.error(f"isMemberExist has failed with error {ex}")
 
     def get_all_player(self):
-        query = "select user_id, player_name, tag_id, game_name from player"
+        query = "select user_id, player_name, tag_id, game_name from player WHERE lower(game_name) = 'league of legends'"
         try:
             self.cursor.execute(query)
             return self.cursor.fetchall()
