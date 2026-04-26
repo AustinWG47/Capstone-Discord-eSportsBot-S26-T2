@@ -10,6 +10,130 @@ The system integrates Discord, SQLite, Riot Games API, Google Sheets, Docker, an
 
 This document provides a full technical reference for the KSU Esports Tournament Bot, covering architecture, features, commands, workflows, configuration, and deployment.
 
+## **Setup Instructions**
+
+## **1\. Clone the Repository**
+
+git clone <https://github.com/AustinWG47/Capstone-Discord-eSportsBot-S26-T2.git>
+
+cd Capstone-Discord-eSportsBot-S26-T2
+
+## **2\. Create the Environment File**
+
+macOS / Linux:
+
+cp .env.template .env
+
+Windows:
+
+copy .env.template .env
+
+Fill in all required values before proceeding.
+
+## **3\. Create and Activate a Virtual Environment**
+
+python -m venv venv
+
+Windows:
+
+venv\\Scripts\\activate
+
+macOS / Linux:
+
+source venv/bin/activate
+
+## **4\. Install Dependencies**
+
+pip install -r requirements.txt
+
+## **5\. Configure Discord Bot Access**
+
+In the Discord Developer Portal: create a bot application, copy the bot token into .env, enable required gateway intents (Message Content, Server Members), and invite the bot to the server with appropriate permissions.
+
+## **6\. Configure the Riot API**
+
+Obtain a Riot API development key and add it to the .env file under both API_KEY and RIOT_API_KEY.
+
+## **7\. Configure Ollama (Optional for AI-assisted seeding)**
+
+**Step 1 - Install Ollama**
+
+**Download Ollama:**
+
+<https://ollama.com/download>
+
+- Install like a normal application
+- Restart your terminal after installation
+
+**Step 2 - Start Ollama**
+
+Open a terminal / PowerShell and run:
+
+ollama serve
+
+You should see something like:
+
+Listening on [http://localhost:11434](http://localhost:11434/)
+
+This means Ollama is running correctly
+
+**Step 3 - Download the AI Model**
+
+Run:
+
+ollama run mistral
+
+- This will download the **Mistral model** (first time only)
+- After first time download this will run the **Mistral model**
+
+**Step 4 - Keep Ollama Running**
+
+Make sure this is running **before starting the Discord bot**:
+
+ollama serve
+
+**Step 5 - Verify It Works**
+
+Open a browser and go to:
+
+[http://localhost:11434](http://localhost:11434/)
+
+If Ollama is running, you should NOT see a connection error.
+
+**Step 6 - Run Discord Bot**
+
+Now start the Discord bot:
+
+python tournament.py
+
+## **8\. Configure Google Sheets (Optional)**
+
+Add your Google Sheet ID and service account credentials path to .env to enable the import/export feature.
+
+## **9\. Run the Bot**
+
+python tournament.py
+
+On successful startup, the bot logs in, loads all controller cogs, syncs slash commands, and begins accepting input in the configured server.
+
+**Deployment**
+
+## **Local Deployment**
+
+The simplest deployment path is running the application directly with Python after configuring the .env file.
+
+## **Docker Deployment**
+
+The repository includes a Dockerfile and dedicated Docker documentation in docs/docker_deployment.md.
+
+### **Build**
+
+docker build -t ksu-esports-bot .
+
+### **Run**
+
+docker run --env-file .env ksu-esports-bot
+
 **Features**
 
 ## **Core Tournament Features**
@@ -498,130 +622,6 @@ GOOGLE_SHEET_ID=your_google_sheet_id_here
 CELL_RANGE=Sheet1
 
 Using environment variables prevents sensitive credentials from being committed to the repository and makes deployment consistent across local, testing, and production environments.
-
-**Setup Instructions**
-
-## **1\. Clone the Repository**
-
-git clone <https://github.com/AustinWG47/Capstone-Discord-eSportsBot-S26-T2.git>
-
-cd Capstone-Discord-eSportsBot-S26-T2
-
-## **2\. Create the Environment File**
-
-macOS / Linux:
-
-cp .env.template .env
-
-Windows:
-
-copy .env.template .env
-
-Fill in all required values before proceeding.
-
-## **3\. Create and Activate a Virtual Environment**
-
-python -m venv venv
-
-Windows:
-
-venv\\Scripts\\activate
-
-macOS / Linux:
-
-source venv/bin/activate
-
-## **4\. Install Dependencies**
-
-pip install -r requirements.txt
-
-## **5\. Configure Discord Bot Access**
-
-In the Discord Developer Portal: create a bot application, copy the bot token into .env, enable required gateway intents (Message Content, Server Members), and invite the bot to the server with appropriate permissions.
-
-## **6\. Configure the Riot API**
-
-Obtain a Riot API development key and add it to the .env file under both API_KEY and RIOT_API_KEY.
-
-## **7\. Configure Ollama (Optional for AI-assisted seeding)**
-
-**Step 1 - Install Ollama**
-
-**Download Ollama:**
-
-<https://ollama.com/download>
-
-- Install like a normal application
-- Restart your terminal after installation
-
-**Step 2 - Start Ollama**
-
-Open a terminal / PowerShell and run:
-
-ollama serve
-
-You should see something like:
-
-Listening on [http://localhost:11434](http://localhost:11434/)
-
-This means Ollama is running correctly
-
-**Step 3 - Download the AI Model**
-
-Run:
-
-ollama run mistral
-
-- This will download the **Mistral model** (first time only)
-- After first time download this will run the **Mistral model**
-
-**Step 4 - Keep Ollama Running**
-
-Make sure this is running **before starting the Discord bot**:
-
-ollama serve
-
-**Step 5 - Verify It Works**
-
-Open a browser and go to:
-
-[http://localhost:11434](http://localhost:11434/)
-
-If Ollama is running, you should NOT see a connection error.
-
-**Step 6 - Run Discord Bot**
-
-Now start the Discord bot:
-
-python tournament.py
-
-## **8\. Configure Google Sheets (Optional)**
-
-Add your Google Sheet ID and service account credentials path to .env to enable the import/export feature.
-
-## **9\. Run the Bot**
-
-python tournament.py
-
-On successful startup, the bot logs in, loads all controller cogs, syncs slash commands, and begins accepting input in the configured server.
-
-**Deployment**
-
-## **Local Deployment**
-
-The simplest deployment path is running the application directly with Python after configuring the .env file.
-
-## **Docker Deployment**
-
-The repository includes a Dockerfile and dedicated Docker documentation in docs/docker_deployment.md.
-
-### **Build**
-
-docker build -t ksu-esports-bot .
-
-### **Run**
-
-docker run --env-file .env ksu-esports-bot
 
 ## **GitHub Actions and Docker Hub**
 
