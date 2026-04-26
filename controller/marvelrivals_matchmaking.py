@@ -11,9 +11,9 @@ from model.dbc_model import Tournament_DB
 
 
 #Random player insertion for testing and demo
-db = Tournament_DB()
 
 def insert_test_players():
+    db = Tournament_DB()
     players = []
 
     for i in range(1, 25):
@@ -309,7 +309,7 @@ class MarvelRivalsMatchmakingController(commands.Cog):
                     # Get the next match ID for the participation session
                     from model.dbc_model import Matches
                     matches_db = Matches(db_name=settings.DATABASE_NAME)
-                    participation_match_num = matches_db.get_next_match_id()
+                    participation_match_num = base_match_num + len(pools) + 1
                     for player in participation_players:
                         user_id = player.get('user_id')
                         if user_id:
@@ -334,9 +334,9 @@ class MarvelRivalsMatchmakingController(commands.Cog):
 
                     for i, player in enumerate(participation_players):
                         name = player.get('player_name', player.get('user_id', 'Unknown'))
-                        rank = f"{player.get('rank', 0):.2f}%"
-                        tier = f"{player.get('kda', 0):.2f}"
-                        rank_value = f"{player.get('rank_value', 0):.2f}"
+                        tier = f"{player.get('tier', 'unranked')}"
+                        rank = f"{player.get('rank', 0)}"
+                        rank_value = f"{player.get('rank_value', 0)}"
 
                         participation_embed.add_field(
                             name=f"Player {i + 1}: {name}",

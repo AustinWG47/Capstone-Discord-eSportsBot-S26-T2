@@ -18,87 +18,87 @@ class MatchResultsController(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
     
-    @app_commands.command(name="record_match_results", description="Record the outcomes of multiple matches")
-    async def record_match_results(self, interaction: discord.Interaction):
-        """Command to record results for multiple matches at once"""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message(
-                "Sorry, you don't have required permission to use this command",
-                ephemeral=True
-            )
-            return
+    # @app_commands.command(name="record_match_results", description="Record the outcomes of multiple matches")
+    # async def record_match_results(self, interaction: discord.Interaction):
+    #     """Command to record results for multiple matches at once"""
+    #     if not interaction.user.guild_permissions.administrator:
+    #         await interaction.response.send_message(
+    #             "Sorry, you don't have required permission to use this command",
+    #             ephemeral=True
+    #         )
+    #         return
             
-        # Get recent matches that don't have results yet
-        db = Tournament_DB()
-        try:
-            # Look for matches without win/loss recorded
-            db.cursor.execute("""
-                SELECT DISTINCT teamId, MAX(date_played) 
-                FROM Matches 
-                WHERE win IS NULL AND loss IS NULL
-                GROUP BY teamId
-                ORDER BY teamId ASC
-                LIMIT 10
-            """)
+    #     # Get recent matches that don't have results yet
+    #     db = Tournament_DB()
+    #     try:
+    #         # Look for matches without win/loss recorded
+    #         db.cursor.execute("""
+    #             SELECT DISTINCT teamId, MAX(date_played) 
+    #             FROM Matches 
+    #             WHERE win IS NULL AND loss IS NULL
+    #             GROUP BY teamId
+    #             ORDER BY teamId ASC
+    #             LIMIT 10
+    #         """)
 
-            recent_matches = db.cursor.fetchall()
+    #         recent_matches = db.cursor.fetchall()
 
-            if not recent_matches:
-                await interaction.response.send_message("No pending matches found to record results for.")
-                db.close_db()
-                return
+    #         if not recent_matches:
+    #             await interaction.response.send_message("No pending matches found to record results for.")
+    #             db.close_db()
+    #             return
 
-            # Prepare match data for the view
-            match_results = []
+    #         # Prepare match data for the view
+    #         match_results = []
 
-            for i, (match_id, _) in enumerate(recent_matches):
-                match_results.append({
-                    "match_id": match_id,
-                    "pool_idx": i
-                })
+    #         for i, (match_id, _) in enumerate(recent_matches):
+    #             match_results.append({
+    #                 "match_id": match_id,
+    #                 "pool_idx": i
+    #             })
 
-            # Create view for match results
-            view = MatchResultView(match_results)
+    #         # Create view for match results
+    #         view = MatchResultView(match_results)
 
-            # Send initial message
-            response = await interaction.response.send_message(
-                content=f"Found {len(match_results)} matches needing results.\n"
-                        f"Select a match and then click the team that won.",
-                view=view
-            )
+    #         # Send initial message
+    #         response = await interaction.response.send_message(
+    #             content=f"Found {len(match_results)} matches needing results.\n"
+    #                     f"Select a match and then click the team that won.",
+    #             view=view
+    #         )
 
-            # Store message reference for later updates
-            view.message = await interaction.original_response()
+    #         # Store message reference for later updates
+    #         view.message = await interaction.original_response()
 
-            # Wait for the view to complete
-            await view.wait()
+    #         # Wait for the view to complete
+    #         await view.wait()
 
-            # Process the results
-            results_processed = self._process_match_results(db, view.processed_results)
+    #         # Process the results
+    #         results_processed = self._process_match_results(db, view.processed_results)
 
-            # Send final confirmation
-            if results_processed > 0:
-                # Create view with buttons to start MVP voting
-                def create_callback(mid):
-                    async def callback(inter):
-                        await self._start_mvp_voting(inter, mid)
-                    return callback
+    #         # Send final confirmation
+    #         if results_processed > 0:
+    #             # Create view with buttons to start MVP voting
+    #             def create_callback(mid):
+    #                 async def callback(inter):
+    #                     await self._start_mvp_voting(inter, mid)
+    #                 return callback
                 
-                mvp_view = create_multiple_mvp_voting_buttons(
-                    view.processed_results.keys(),
-                    create_callback
-                )
+    #             mvp_view = create_multiple_mvp_voting_buttons(
+    #                 view.processed_results.keys(),
+    #                 create_callback
+    #             )
                 
-                await interaction.followup.send(
-                    f"Successfully recorded results for {results_processed} matches and updated player stats. Would you like to start MVP voting?",
-                    view=mvp_view
-                )
+    #             await interaction.followup.send(
+    #                 f"Successfully recorded results for {results_processed} matches and updated player stats. Would you like to start MVP voting?",
+    #                 view=mvp_view
+    #             )
 
-        except Exception as ex:
-            logger.error(f"Error recording match results: {ex}")
-            await interaction.followup.send(f"Error recording match results: {str(ex)}")
-        finally:
-            db.close_db()
+    #     except Exception as ex:
+    #         logger.error(f"Error recording match results: {ex}")
+    #         await interaction.followup.send(f"Error recording match results: {str(ex)}")
+    #     finally:
+    #         db.close_db()
 
     @app_commands.command(name="record_match_result", description="Record the outcome of a single match")
     @app_commands.describe(

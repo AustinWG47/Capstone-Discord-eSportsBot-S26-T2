@@ -131,123 +131,123 @@ class MatchmakingController(commands.Cog):
                 view=None
             )
 
-    @app_commands.command(name="simulate_volunteers", description="Simulate volunteers for sitting out")
-    @app_commands.describe(count="Number of volunteers needed")
-    async def simulate_volunteers(self, interaction: discord.Interaction, count: int = 4):
-        if interaction.user.guild_permissions.administrator:
-            db = Tournament_DB()
+    # @app_commands.command(name="simulate_volunteers", description="Simulate volunteers for sitting out")
+    # @app_commands.describe(count="Number of volunteers needed")
+    # async def simulate_volunteers(self, interaction: discord.Interaction, count: int = 4):
+    #     if interaction.user.guild_permissions.administrator:
+    #         db = Tournament_DB()
 
-            try:
-                #Get all players
-                db.cursor.execute("""
-                    SELECT p.user_id, p.player_name, p.tag_id, g.tier, g.rank 
-                    FROM player p
-                    JOIN league_game_details g ON p.user_id = g.user_id
-                    GROUP BY p.user_id
-                    HAVING MAX(g.game_date)
-                """)
+    #         try:
+    #             #Get all players
+    #             db.cursor.execute("""
+    #                 SELECT p.user_id, p.player_name, p.tag_id, g.tier, g.rank 
+    #                 FROM player p
+    #                 JOIN league_game_details g ON p.user_id = g.user_id
+    #                 GROUP BY p.user_id
+    #                 HAVING MAX(g.game_date)
+    #             """)
 
-                all_players = []
-                for record in db.cursor.fetchall():
-                    user_id, game_name, tag_id, tier, rank = record
-                    all_players.append({
-                        'user_id': user_id,
-                        'player_name': game_name,
-                        'tier': tier.lower() if tier else 'default',
-                        'rank': rank if rank else ''
-                    })
+    #             all_players = []
+    #             for record in db.cursor.fetchall():
+    #                 user_id, game_name, tag_id, tier, rank = record
+    #                 all_players.append({
+    #                     'user_id': user_id,
+    #                     'player_name': game_name,
+    #                     'tier': tier.lower() if tier else 'default',
+    #                     'rank': rank if rank else ''
+    #                 })
 
-                if len(all_players) < count:
-                    await interaction.response.send_message(
-                        f"Not enough players registered. Need at least {count} players, but only have {len(all_players)}."
-                    )
-                    return
+    #             if len(all_players) < count:
+    #                 await interaction.response.send_message(
+    #                     f"Not enough players registered. Need at least {count} players, but only have {len(all_players)}."
+    #                 )
+    #                 return
 
-                #Mark some players as "volunteering"
-                volunteers = random.sample(all_players, count)
+    #             #Mark some players as "volunteering"
+    #             volunteers = random.sample(all_players, count)
 
-                #Create a volunteer table for demo
-                volunteer_embed = discord.Embed(
-                    title=f"Simulated Volunteers ({count} players)",
-                    color=discord.Color.green(),
-                    description="These players have volunteered to sit out and receive participation points."
-                )
+    #             #Create a volunteer table for demo
+    #             volunteer_embed = discord.Embed(
+    #                 title=f"Simulated Volunteers ({count} players)",
+    #                 color=discord.Color.green(),
+    #                 description="These players have volunteered to sit out and receive participation points."
+    #             )
 
-                #Role color mapping (using League of Legends colors)
-                role_colors = {
-                    "top": "🟥",      # Red
-                    "jungle": "🟩",   # Green
-                    "mid": "🟨",      # Yellow
-                    "bottom": "🟦",   # Blue
-                    "support": "🟪",  # Purple
-                    "tbd": "⬜",      # White/empty
-                    "forced": "⬛"     # Black/forced
-                }
+    #             #Role color mapping (using League of Legends colors)
+    #             role_colors = {
+    #                 "top": "🟥",      # Red
+    #                 "jungle": "🟩",   # Green
+    #                 "mid": "🟨",      # Yellow
+    #                 "bottom": "🟦",   # Blue
+    #                 "support": "🟪",  # Purple
+    #                 "tbd": "⬜",      # White/empty
+    #                 "forced": "⬛"     # Black/forced
+    #             }
                 
-                for i, player in enumerate(volunteers):
-                    name = player.get('game_name')
-                    tier = player.get('tier', 'unknown').capitalize()
-                    rank = player.get('rank', '')
+    #             for i, player in enumerate(volunteers):
+    #                 name = player.get('game_name')
+    #                 tier = player.get('tier', 'unknown').capitalize()
+    #                 rank = player.get('rank', '')
                     
-                    #Try to get roles
-                    db.cursor.execute(
-                        "SELECT role FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
-                        (player.get('user_id'),)
-                    )
-                    role_result = db.cursor.fetchone()
+    #                 #Try to get roles
+    #                 db.cursor.execute(
+    #                     "SELECT role FROM game WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+    #                     (player.get('user_id'),)
+    #                 )
+    #                 role_result = db.cursor.fetchone()
                     
-                    #Format roles with colors
-                    colored_roles = []
-                    if role_result and role_result[0]:
-                        try:
-                            roles = json.loads(role_result[0])
-                            if isinstance(roles, list):
-                                for role in roles:
-                                    role_lower = role.lower()
-                                    role_emoji = role_colors.get(role_lower, "⬜")
-                                    colored_roles.append(f"{role_emoji} {role.capitalize()}")
-                        except:
-                            pass
+    #                 #Format roles with colors
+    #                 colored_roles = []
+    #                 if role_result and role_result[0]:
+    #                     try:
+    #                         roles = json.loads(role_result[0])
+    #                         if isinstance(roles, list):
+    #                             for role in roles:
+    #                                 role_lower = role.lower()
+    #                                 role_emoji = role_colors.get(role_lower, "⬜")
+    #                                 colored_roles.append(f"{role_emoji} {role.capitalize()}")
+    #                     except:
+    #                         pass
                     
-                    role_str = '  '.join(colored_roles) if colored_roles else 'None'
+    #                 role_str = '  '.join(colored_roles) if colored_roles else 'None'
                     
-                    value_str = f"**Rank:** {tier} {rank}"
-                    if colored_roles:
-                        value_str += f"\n**Roles:** {role_str}"
+    #                 value_str = f"**Rank:** {tier} {rank}"
+    #                 if colored_roles:
+    #                     value_str += f"\n**Roles:** {role_str}"
 
-                    volunteer_embed.add_field(
-                        name=f"Player {i + 1}: {name}",
-                        value=value_str,
-                        inline=True
-                    )
+    #                 volunteer_embed.add_field(
+    #                     name=f"Player {i + 1}: {name}",
+    #                     value=value_str,
+    #                     inline=True
+    #                 )
 
-                #Record volunteers in database with "volunteer" status
-                session_id = f"volunteer_session_{int(asyncio.get_event_loop().time())}"
-                #Get the next match ID for the volunteer session
-                from model.dbc_model import Matches
-                matches_db = Matches(db_name=settings.DATABASE_NAME)
-                volunteer_match_num = matches_db.get_next_match_id()
-                for player in volunteers:
-                    user_id = player.get('user_id')
-                    if user_id:
-                        query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
-                        db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num, "League of Legends", session_id))
+    #             #Record volunteers in database with "volunteer" status
+    #             session_id = f"volunteer_session_{int(asyncio.get_event_loop().time())}"
+    #             #Get the next match ID for the volunteer session
+    #             from model.dbc_model import Matches
+    #             matches_db = Matches(db_name=settings.DATABASE_NAME)
+    #             volunteer_match_num = matches_db.get_next_match_id()
+    #             for player in volunteers:
+    #                 user_id = player.get('user_id')
+    #                 if user_id:
+    #                     query = "INSERT INTO Matches(user_id, teamUp, teamId, match_num, game_name, matchmaking_session) VALUES(?, ?, ?, ?, ?, ?)"
+    #                     db.cursor.execute(query, (user_id, "volunteer", session_id, volunteer_match_num, "League of Legends", session_id))
 
-                db.connection.commit()
-                db.close_db()
+    #             db.connection.commit()
+    #             db.close_db()
 
-                await interaction.response.send_message(
-                    content=f"Simulated {count} volunteers for sitting out.",
-                    embed=volunteer_embed
-                )
+    #             await interaction.response.send_message(
+    #                 content=f"Simulated {count} volunteers for sitting out.",
+    #                 embed=volunteer_embed
+    #             )
 
-            except Exception as ex:
-                logger.error(f"Error simulating volunteers: {ex}")
-                await interaction.response.send_message(f"Error simulating volunteers: {str(ex)}")
-                db.close_db()
-        else:
-            await interaction.response.send_message("Sorry, you don't have required permission to use this command",
-                                                  ephemeral=True)
+    #         except Exception as ex:
+    #             logger.error(f"Error simulating volunteers: {ex}")
+    #             await interaction.response.send_message(f"Error simulating volunteers: {str(ex)}")
+    #             db.close_db()
+    #     else:
+    #         await interaction.response.send_message("Sorry, you don't have required permission to use this command",
+    #                                               ephemeral=True)
 
     @app_commands.command(name="run_league_matchmaking", description="Run League of Legends matchmaking with registered players")
     @app_commands.describe(

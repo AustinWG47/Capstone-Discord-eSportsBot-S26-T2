@@ -62,7 +62,7 @@ class RankSelect(discord.ui.Select):
             cursor.execute(
                 """
                 UPDATE league_game_details
-                SET rank = ?
+                SET tier = ?     
                 WHERE user_id IN (
                 SELECT user_id FROM player WHERE user_id = ?
                 )
@@ -74,7 +74,7 @@ class RankSelect(discord.ui.Select):
             cursor.execute(
                 """
                 UPDATE mr_game_details
-                SET rank = ?
+                SET tier = ?
                 WHERE user_id IN (
                 SELECT user_id FROM player WHERE user_id = ?
                 )

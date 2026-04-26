@@ -354,156 +354,156 @@ class PlayerManagement(commands.Cog):
                 ephemeral=True
             )
 
-    @app_commands.command(name="player_match_history", description="View a player's match history")
-    @app_commands.describe(player_name="The summoner name of the player to look up")
-    async def player_match_history(self, interaction: discord.Interaction, player_name: str):
-        if interaction.user.guild_permissions.administrator:
-            db = Tournament_DB()
-            try:
-                # Find player ID from name
-                db.cursor.execute("SELECT user_id FROM player WHERE player_name LIKE ?", (f"%{player_name}%",))
-                result = db.cursor.fetchone()
+    # @app_commands.command(name="player_match_history", description="View a player's match history")
+    # @app_commands.describe(player_name="The summoner name of the player to look up")
+    # async def player_match_history(self, interaction: discord.Interaction, player_name: str):
+    #     if interaction.user.guild_permissions.administrator:
+    #         db = Tournament_DB()
+    #         try:
+    #             # Find player ID from name
+    #             db.cursor.execute("SELECT user_id FROM player WHERE player_name LIKE ?", (f"%{player_name}%",))
+    #             result = db.cursor.fetchone()
 
-                if not result:
-                    await interaction.response.send_message(f"Player '{player_name}' not found", ephemeral=True)
-                    return
+    #             if not result:
+    #                 await interaction.response.send_message(f"Player '{player_name}' not found", ephemeral=True)
+    #                 return
 
-                player_id = result[0]
+    #             player_id = result[0]
 
-                # Get player details
-                db.cursor.execute("SELECT game_name, tag_id, player_name FROM player WHERE user_id = ?", (player_id,))
-                player_data = db.cursor.fetchone()
-                game_name, tag_id, player_name = player_data
+    #             # Get player details
+    #             db.cursor.execute("SELECT game_name, tag_id, player_name FROM player WHERE user_id = ?", (player_id,))
+    #             player_data = db.cursor.fetchone()
+    #             game_name, tag_id, player_name = player_data
 
-                # Get player stats
-                db.cursor.execute(
-                    "SELECT tier, rank, role, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
-                    (player_id,)
-                )
-                game_data = db.cursor.fetchone()
+    #             # Get player stats
+    #             db.cursor.execute(
+    #                 "SELECT tier, rank, role, wins, losses, wr, manual_tier FROM league_game_details WHERE user_id = ? ORDER BY game_date DESC LIMIT 1",
+    #                 (player_id,)
+    #             )
+    #             game_data = db.cursor.fetchone()
 
-                if not game_data:
-                    await interaction.response.send_message(f"No game data found for player '{player_name}'",
-                                                            ephemeral=True)
-                    return
+    #             if not game_data:
+    #                 await interaction.response.send_message(f"No game data found for player '{player_name}'",
+    #                                                         ephemeral=True)
+    #                 return
 
-                tier, rank, role_json, wins, losses, win_rate, manual_tier = game_data
+    #             tier, rank, role_json, wins, losses, win_rate, manual_tier = game_data
 
-                # Role color mapping (using League of Legends colors)
-                role_colors = {
-                    "top": "🟥",      # Red
-                    "jungle": "🟩",   # Green
-                    "mid": "🟨",      # Yellow
-                    "bottom": "🟦",   # Blue
-                    "support": "🟪",  # Purple
-                    "tbd": "⬜",      # White/empty
-                    "forced": "⬛"     # Black/forced
-                }
+    #             # Role color mapping (using League of Legends colors)
+    #             role_colors = {
+    #                 "top": "🟥",      # Red
+    #                 "jungle": "🟩",   # Green
+    #                 "mid": "🟨",      # Yellow
+    #                 "bottom": "🟦",   # Blue
+    #                 "support": "🟪",  # Purple
+    #                 "tbd": "⬜",      # White/empty
+    #                 "forced": "⬛"     # Black/forced
+    #             }
                 
-                # Parse role preferences
-                role_str = "None"
-                if role_json:
-                    try:
-                        roles = json.loads(role_json)
-                        if isinstance(roles, list):
-                            colored_roles = []
-                            for role in roles:
-                                role_lower = role.lower()
-                                role_emoji = role_colors.get(role_lower, "⬜")
-                                colored_roles.append(f"{role_emoji} {role.capitalize()}")
-                            role_str = "  ".join(colored_roles)
-                        else:
-                            role_str = str(roles)
-                    except:
-                        role_str = str(role_json)
+    #             # Parse role preferences
+    #             role_str = "None"
+    #             if role_json:
+    #                 try:
+    #                     roles = json.loads(role_json)
+    #                     if isinstance(roles, list):
+    #                         colored_roles = []
+    #                         for role in roles:
+    #                             role_lower = role.lower()
+    #                             role_emoji = role_colors.get(role_lower, "⬜")
+    #                             colored_roles.append(f"{role_emoji} {role.capitalize()}")
+    #                         role_str = "  ".join(colored_roles)
+    #                     else:
+    #                         role_str = str(roles)
+    #                 except:
+    #                     role_str = str(role_json)
 
-                # Get match history
-                db.cursor.execute(
-                    """
-                    SELECT m.teamId, m.teamUp, m.win, m.loss, m.date_played 
-                    FROM Matches m
-                    WHERE m.user_id = ?
-                    ORDER BY m.date_played DESC
-                    LIMIT 10
-                    """,
-                    (player_id,)
-                )
-                matches = db.cursor.fetchall()
+    #             # Get match history
+    #             db.cursor.execute(
+    #                 """
+    #                 SELECT m.teamId, m.teamUp, m.win, m.loss, m.date_played 
+    #                 FROM Matches m
+    #                 WHERE m.user_id = ?
+    #                 ORDER BY m.date_played DESC
+    #                 LIMIT 10
+    #                 """,
+    #                 (player_id,)
+    #             )
+    #             matches = db.cursor.fetchall()
 
-                # Create player profile embed
-                embed = discord.Embed(
-                    title=f"Player Profile: {game_name} {tag_id}",
-                    color=discord.Color.gold()
-                )
+    #             # Create player profile embed
+    #             embed = discord.Embed(
+    #                 title=f"Player Profile: {game_name} {tag_id}",
+    #                 color=discord.Color.gold()
+    #             )
 
-                # Add player stats
-                embed.add_field(
-                    name="Rank",
-                    value=f"{tier.capitalize() if tier else 'Unranked'} {rank if rank else ''}",
-                    inline=True
-                )
+    #             # Add player stats
+    #             embed.add_field(
+    #                 name="Rank",
+    #                 value=f"{tier.capitalize() if tier else 'Unranked'} {rank if rank else ''}",
+    #                 inline=True
+    #             )
 
-                # Add manual tier if available
-                if manual_tier is not None:
-                    embed.add_field(
-                        name="Manual Tier",
-                        value=f"{manual_tier:.1f} / 10.0",
-                        inline=True
-                    )
+    #             # Add manual tier if available
+    #             if manual_tier is not None:
+    #                 embed.add_field(
+    #                     name="Manual Tier",
+    #                     value=f"{manual_tier:.1f} / 10.0",
+    #                     inline=True
+    #                 )
 
-                embed.add_field(
-                    name="Win/Loss",
-                    value=f"{wins}W {losses}L" if wins is not None and losses is not None else "No record",
-                    inline=True
-                )
+    #             embed.add_field(
+    #                 name="Win/Loss",
+    #                 value=f"{wins}W {losses}L" if wins is not None and losses is not None else "No record",
+    #                 inline=True
+    #             )
 
-                if wins is not None and losses is not None:
-                    total_games = wins + losses
-                    if total_games > 0:
-                        calculated_wr = (wins / total_games) * 100
-                        embed.add_field(
-                            name="Win Rate",
-                            value=f"{calculated_wr:.1f}%",
-                            inline=True
-                        )
+    #             if wins is not None and losses is not None:
+    #                 total_games = wins + losses
+    #                 if total_games > 0:
+    #                     calculated_wr = (wins / total_games) * 100
+    #                     embed.add_field(
+    #                         name="Win Rate",
+    #                         value=f"{calculated_wr:.1f}%",
+    #                         inline=True
+    #                     )
 
-                embed.add_field(
-                    name="Preferred Roles",
-                    value=role_str,
-                    inline=False
-                )
+    #             embed.add_field(
+    #                 name="Preferred Roles",
+    #                 value=role_str,
+    #                 inline=False
+    #             )
 
-                # Add match history
-                if matches:
-                    match_history = ""
-                    for match in matches:
-                        match_id, team, win, loss, date = match
-                        result = "Win" if win == "yes" else "Loss" if loss == "yes" else "Unknown"
-                        match_date = date if date else "Unknown date"
-                        match_history += f"**{match_id}**: {result} (Team {team[-1]}) - {match_date}\n"
+    #             # Add match history
+    #             if matches:
+    #                 match_history = ""
+    #                 for match in matches:
+    #                     match_id, team, win, loss, date = match
+    #                     result = "Win" if win == "yes" else "Loss" if loss == "yes" else "Unknown"
+    #                     match_date = date if date else "Unknown date"
+    #                     match_history += f"**{match_id}**: {result} (Team {team[-1]}) - {match_date}\n"
 
-                    embed.add_field(
-                        name="Recent Matches",
-                        value=match_history if match_history else "No match history",
-                        inline=False
-                    )
-                else:
-                    embed.add_field(
-                        name="Recent Matches",
-                        value="No match history found",
-                        inline=False
-                    )
+    #                 embed.add_field(
+    #                     name="Recent Matches",
+    #                     value=match_history if match_history else "No match history",
+    #                     inline=False
+    #                 )
+    #             else:
+    #                 embed.add_field(
+    #                     name="Recent Matches",
+    #                     value="No match history found",
+    #                     inline=False
+    #                 )
 
-                await interaction.response.send_message(embed=embed)
+    #             await interaction.response.send_message(embed=embed)
 
-            except Exception as ex:
-                logger.error(f"Error retrieving player history: {ex}")
-                await interaction.response.send_message(f"Error retrieving player history: {str(ex)}")
-            finally:
-                db.close_db()
-        else:
-            await interaction.response.send_message("Sorry, you don't have required permission to use this command",
-                                                  ephemeral=True)
+    #         except Exception as ex:
+    #             logger.error(f"Error retrieving player history: {ex}")
+    #             await interaction.response.send_message(f"Error retrieving player history: {str(ex)}")
+    #         finally:
+    #             db.close_db()
+    #     else:
+    #         await interaction.response.send_message("Sorry, you don't have required permission to use this command",
+    #                                               ephemeral=True)
                                                   
     @app_commands.command(name="simulate_checkins", description="Simulate League of Legends players checking in")
     @app_commands.describe(

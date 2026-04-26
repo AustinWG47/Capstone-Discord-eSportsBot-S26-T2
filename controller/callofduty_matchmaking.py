@@ -11,9 +11,9 @@ from model.dbc_model import Tournament_DB, Game
 
 
 #Random player insertion for testing and demo
-db = Tournament_DB()
 
 def insert_test_players():
+    db = Tournament_DB()
     players = []
 
     for i in range(1, 25):
@@ -183,12 +183,12 @@ class CODMatchmakingController(commands.Cog):
 
                 # Run matchmaking for each pool
                 results = []
+                from model.dbc_model import Matches
+                matches_db = Matches(db_name=settings.DATABASE_NAME)
+                match_num = matches_db.get_next_match_id()
 
                 for pool_idx, pool in enumerate(pools):
                     # Get the next match ID
-                    from model.dbc_model import Matches
-                    matches_db = Matches(db_name=settings.DATABASE_NAME)
-                    match_num = matches_db.get_next_match_id()
                     match_id = f"match_{match_num}"
 
                     # Split pool into balanced teams
@@ -278,7 +278,7 @@ class CODMatchmakingController(commands.Cog):
                     # Get the next match ID for the participation session
                     from model.dbc_model import Matches
                     matches_db = Matches(db_name=settings.DATABASE_NAME)
-                    participation_match_num = matches_db.get_next_match_id()
+                    participation_match_num = match_num + len(pools) + 1
                     for player in participation_players:
                         user_id = player.get('user_id')
                         if user_id:
