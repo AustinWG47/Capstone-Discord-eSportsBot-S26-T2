@@ -10,6 +10,8 @@ The system integrates Discord, SQLite, Riot Games API, Google Sheets, Docker, an
 
 This document provides a full technical reference for the KSU Esports Tournament Bot, covering architecture, features, commands, workflows, configuration, and deployment.
 
+## **Setup Instructions:**
+
 ## **1. Clone the Repository**
 
 git clone <https://github.com/AustinWG47/Capstone-Discord-eSportsBot-S26-T2.git>
@@ -173,7 +175,7 @@ On successful startup, the bot logs in, loads all controller cogs, syncs slash c
 
 ## **Local Deployment**
 
-The simplest deployment path is running the application directly with Python after configuring the .env file.
+The simplest deployment path is running the application directly with Python after configuring the .env file. (python tournament.py)
 
 ## **Docker Deployment**
 
@@ -226,10 +228,12 @@ docker run --env-file .env ksu-esports-bot
 The following is the high-level game day sequence. Full setup and deployment instructions are covered in the Setup Instructions section.
 
 - Register players using /register.
-- Run matchmaking with /run_league_matchmaking.
+- Run matchmaking with /run_league_matchmaking, run_cod_matchmaking, or run_marvelrivals_matchmaking).
 - Record match outcomes with /record_match_result or /record_match_results.
 - Start MVP voting with /start_mvp_voting after each match.
 - Export or review player data as needed with /export_players or /stats.
+- create teams with /team_create and players can leave them with /team_leave.
+- seed tournaments from matchmaking results with /seed_from_matchmaking or from created teams with /seed_teams.
 
 **Project Structure**
 
@@ -511,6 +515,20 @@ All commands are Discord slash commands unless otherwise noted. Commands are org
 | ---------------------- | ------------------------------------------- |
 | /seed_demo             | Runs the seeding algorithm using demo data. |
 | /seed_from_matchmaking | Builds seeding from matchmaking output.     |
+| /seed_teams            | Builds seeding from player made teams.      |
+
+## **Admin & Testing Commands**
+
+| **Command**                        | **Purpose**                                                                                          |
+| -----------------------------------| -----------------------------------------------------------------------------------------------------|
+| `/clear_db`                        | Removes or resets all data stored in the database                                                    |
+| `/record_match_result`             |- Record which team won                                                                               |
+| `/start_mvp_voting`                |Start MVP voting for a match                                                                          |
+| `/list_players`                    |View all registered players                                                                           |
+| `/insert_codtest_players`          | - creates test players registered for Call of Duty in the DB                                         |
+| `/insert_marvelrivals_test_players`| - creates test players registered for Marvel Rivals in the DB                                        |
+| `/simulate_checkins`               |- creates test players registered for League of Legends in the DB                                     |
+| `/create_fake_teams`               |- creates a fake team with test players (allows you to select which game the team is created for)     |
 
 ## **Giveaway Command**
 
@@ -558,18 +576,16 @@ Marvel Rivals is based on the Tier & Rank of each player. A value is assigned to
 
 Once values are assigned, the first team will get the best player, then the next team will pick the next best players until their value is equal or higher. This then repeats until both teams are filled.
 
-# **Check-In Workflow**
-
-The game day check-in process is designed to streamline match formation before matchmaking begins.
-
 ## **General Flow**
 
-- Players register with the Discord UI and select their stats/ranks.
+- Players register with the Discord UI and select their stats/ranks (depends on game selected).
 - If the pool is oversized, volunteer sit-out logic is applied.
 - Matchmaking is run on the finalized player pool.
 - Teams are generated, stored, and displayed or announced.
 - Match results are recorded after play.
 - MVP voting begins automatically upon match completion.
+- You can seed a tournament bracket from the players in the most recent matchmaking session
+- Or instead, players can form teams and tournament seeding can be applied to those teams.
 
 This gives the bot a complete tournament or matchmaking lifecycle rather than a set of isolated commands.
 
@@ -711,12 +727,11 @@ The repository contains a comprehensive set of supporting documents for setup, d
 
 - docs/design_document.md - System design and architectural decisions
 - docs/setup_guide.md - Detailed environment and configuration setup
-- docs/game_day_guide.md - Step-by-step operations guide for tournament days
+- docs/User Guide.md - Step-by-step operations guide for tournament days
 - docs/export_import.md - Google Sheets integration reference
 - docs/docker_deployment.md - Docker build and deployment instructions
 - docs/test_documentation.md - Testing strategy, coverage, and instructions
 - docs/toxicity_system.md - Toxicity tracking design and usage
-- google_export.md - Google Sheets setup notes (repository root)
 
 **Strengths of the Project**
 

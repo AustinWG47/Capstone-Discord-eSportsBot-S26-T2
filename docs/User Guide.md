@@ -1,4 +1,4 @@
-# KSU Esports Tournament - Game Day Guide
+# KSU Esports Tournament - User Guide
 
 
 1. **Player Registration**
@@ -39,7 +39,7 @@
    - Optionally end mvp voting early using `/end_mvp_voting`
    - Results are announced automatically when voting closes
 
-### 5. Tournament Seeding
+### 4. Tournament Seeding
 
 1. **Seeding From Matchmaking**
    - Run one of the matchmaking commands: `/run_marvelrivals_matchmaking`, `/run_cod_matchmaking`, or `/run_league_matchmaking`
@@ -56,7 +56,7 @@
       - 
 
 
-### Administrative Commands
+### 5. Administrative Commands
 - `/clear_db` - Removes or resets all data stored in the database
 - `/record_match_result` - Record which team won
 - `/start_mvp_voting` - Start MVP voting for a match

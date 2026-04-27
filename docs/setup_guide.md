@@ -1,12 +1,12 @@
-## **Setup Guide**
+## **Setup Guide:**
 
-## **1\. Clone the Repository**
+## **1. Clone the Repository**
 
 git clone <https://github.com/AustinWG47/Capstone-Discord-eSportsBot-S26-T2.git>
 
 cd Capstone-Discord-eSportsBot-S26-T2
 
-## **2\. Create the Environment File**
+## **2. Create the Environment File**
 
 - Copy the provided `.env.template` file to a new file named `.env`:
 
@@ -61,7 +61,7 @@ CELL_RANGE=Sheet1
 LOL_SERVICE_PATH=./service_account.json
 ```
 
-## **3\. Create and Activate a Virtual Environment**
+## **3. Create and Activate a Virtual Environment**
 
 python -m venv venv
 
@@ -73,11 +73,11 @@ macOS / Linux:
 
 source venv/bin/activate
 
-## **4\. Install Dependencies**
+## **4. Install Dependencies**
 
 pip install -r requirements.txt
 
-## **5\. Configure Discord Bot Access**
+## **5. Configure Discord Bot Access**
 
 In the Discord Developer Portal: create a bot application, copy the bot token into .env, enable required gateway intents (Message Content, Server Members), and invite the bot to the server with appropriate permissions.
 
@@ -86,18 +86,18 @@ In the Discord Developer Portal: create a bot application, copy the bot token in
 - Enable "Server Members Intent" under Privileged Gateway Intents
 - Paste the token into `.env` as DISCORD_APITOKEN
 
-## **6\. Obtain Server (Guild) ID**
+## **6. Obtain Server (Guild) ID**
 - Enable Developer Mode in Discord settings
 - Right-click your server > Copy ID > Add to `.env` as DISCORD_GUILD
 
-## **7\. Configure the Riot API**
+## **7. Configure the Riot API**
 
 Obtain a Riot API development key and add it to the .env file under both API_KEY and RIOT_API_KEY.
 - Visit [Riot Developer Portal](https://developer.riotgames.com)
 - Register for a personal key 
 - Add the key to `.env` as API_KEY
 
-## **8\. Configure Ollama (Optional for AI-assisted seeding)**
+## **8. Configure Ollama (Optional for AI-assisted seeding)**
 
 **Step 1 - Install Ollama**
 
@@ -149,11 +149,11 @@ Now start the Discord bot:
 
 python tournament.py
 
-## **9\. Configure Google Sheets (Optional)**
+## **9. Configure Google Sheets (Optional)**
 
 Add your Google Sheet ID and service account credentials path to .env to enable the import/export feature.
 
-## **10\. Run the Bot**
+## **10. Run the Bot**
 
 python tournament.py
 
@@ -163,7 +163,7 @@ On successful startup, the bot logs in, loads all controller cogs, syncs slash c
 
 ## **Local Deployment**
 
-The simplest deployment path is running the application directly with Python after configuring the .env file.
+The simplest deployment path is running the application directly with Python after configuring the .env file. (python tournament.py)
 
 ## **Docker Deployment**
 
