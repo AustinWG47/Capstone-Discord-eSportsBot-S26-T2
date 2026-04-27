@@ -139,15 +139,15 @@ class RegisterModal(discord.ui.Modal, title="Registration"):
             placeholder="Enter your tag ID"
         )
 
-        # COD ONLY
-        self.kda = discord.ui.TextInput(
-            label="K/D/A (Call of Duty only)",
-            required=False,
-            placeholder="e.g. 1.20 / 2.5 / 0.8"
-        )
+        if game_name.lower() == "call of duty":
+            self.kda = discord.ui.TextInput(
+                label="K/D/A (Call of Duty only)",
+                required=False,
+                placeholder="e.g. 1.20 / 2.5 / 0.8"
+            )
+            self.add_item(self.kda)
 
         self.add_item(self.player_name)
-        self.add_item(self.kda)
         self.add_item(self.tag_id)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -168,6 +168,25 @@ class RegisterModal(discord.ui.Modal, title="Registration"):
                 playername=self.player_name.value.strip(),
                 tagid=self.tag_id.value.strip(),
             )
+            rank =1
+            lolquery = """
+                UPDATE league_game_details
+                SET rank = ?
+                WHERE user_id = ?
+            """
+            mrquery = """
+                UPDATE mr_game_details
+                SET rank = ?
+                WHERE user_id = ?
+            """
+            if self.game_name.lower() == "league of legends":
+                cursor = db.cursor
+                cursor.execute(lolquery, (rank, interaction.user.id))
+                db.connection.commit()
+            elif self.game_name.lower() == "marvel rivals":
+                cursor = db.cursor
+                cursor.execute(mrquery, (rank, interaction.user.id))
+                db.connection.commit()
             db.close_db()
 
             if self.game_name == "call of duty":
