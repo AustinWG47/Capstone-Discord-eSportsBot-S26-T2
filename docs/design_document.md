@@ -1,508 +1,410 @@
-# KSU Esports Tournament Discord Bot - Design Document
-
-## 1. System Architecture Overview
-
-The bot follows a Model-View-Controller (MVC) architecture pattern:
-
-- **Model**: Database schemas and data access methods (`model/`)
-- **View**: Discord UI components and display logic (`view/`)
-- **Controller**: Command logic and business rules (`controller/`)
-
-### 1.1 Technology Stack
-
-- **Language**: Python
-- **Discord API**: discord.py library
-- **Database**: SQLite via custom wrapper (similar to Peewee ORM)
-- **Additional APIs**: Riot Games API (for player data)
-- **AI Integration**: OpenAI for team formation alternatives
-
-## 2. Database Design
-
-### 2.1 Primary Tables
-
-1. **player**: Stores Discord user ID and basic player info
-   - `user_id` (PK): Discord user ID
-   - `game_name`: In-game name
-   - `game_id`: Game-specific ID
-   - `tag_id`: Game-specific tag
-   - `isAdmin`: Admin status flag
-
-2. **game**: Stores player game statistics and preferences
-   - `user_id` (FK): References player
-   - `game_name`: Name of game
-   - `tier`: Rank tier (bronze, silver, gold, etc.)
-   - `rank`: Division (I, II, III, IV)
-   - `role`: JSON string of role preferences
-   - `wins`, `losses`: Game statistics
-   - `manual_tier`: Numerical skill rating (0-10)
-   - `wr`: Win rate (auto-calculated)
-
-3. **matches**: Records match participation and results
-   - `user_id` (FK): References player
-   - `game_name`: Game name
-   - `win`, `loss`: Match outcome
-   - `teamUp`: Team assignment (team1, team2, volunteer, participation)
-   - `teamId`: Unique match identifier
-   - `date_played`: Timestamp
-
-4. **mvp_votes**: Records MVP voting data
-   - `vote_id` (PK): Auto-increment ID
-   - `match_id`: References match
-   - `voter_id` (FK): User who voted
-   - `player_id` (FK): Player voted for
-   - `vote_date`: Timestamp of vote
-
-### 2.2 Database Connection Pattern
-
-The system uses a custom SQLite wrapper class (`Tournament_DB`) that provides:
-- Connection management
-- Query execution
-- Error handling and logging
-
-## 3. Control Flow
-
-### 3.1 Bot Initialization Flow
-
-1. **Application Entry** (`tournament.py`):
-   - Configures Discord intents and creates bot client
-   - Initializes database connection
-   - Creates required database tables
-   - Registers event handlers
-
-2. **Discord Connection** (`on_ready`):
-   - Logs into Discord servers
-   - Creates/caches necessary channels
-   - Loads controller modules (cogs)
-   - Syncs slash commands
-
-### 3.2 Command Registration Flow
-
-1. All controllers are implemented as Discord.py Cogs
-2. Each cog is automatically loaded during initialization
-3. Commands are registered using `@app_commands.command()` decorators
-4. Command parameters use `@app_commands.describe()` for help text
-
-### 3.3 Player Registration Flow
-
-1. User invokes sign-up command
-2. System collects game name and tag ID
-3. Data is stored in `player` table
-4. Optional API call to fetch rank data
-5. Rank data stored in `game` table
-
-### 3.4 Matchmaking Flow
-
-1. **Command Invocation** (`/run_matchmaking`):
-   - Admin invokes matchmaking command with parameters
-   - System fetches all registered players from database
-
-2. **Player Selection**:
-   - Determines how many players needed per game (default: 10)
-   - If players % 10 != 0, selects players to "sit out"
-   - Selection methods: random, rank-based, or volunteer
+##Design Details
 
-3. **Team Formation** (`genetic_match_making.py`):
-   - For each pool of players (10 per game):
-     - Calculate player performance metrics
-     - Use genetic algorithm to create balanced teams
-     - Optimize for minimizing team performance difference
+**Project Structure**
 
-4. **Database Recording**:
-   - Assigns unique match ID to each game
-   - Records each player's team assignment in `matches` table
-   - Players sitting out get "participation" status
-
-5. **Result Presentation**:
-   - Creates and sends Discord embeds for each team
-   - Displays player info, roles, team balance metrics
-   - Provides match ID for result recording
+Capstone-Discord-eSportsBot-S26-T2/
 
-### 3.5 Match Results Flow
+├── common/ # Shared services, API logic, caching, DB utilities, tasks
 
-1. **Result Recording** (`/record_match_result`):
-   - Admin records match outcome (winning team)
-   - Updates `matches` table with win/loss status
-   - Updates player statistics in `game` table
-   - Presents option to start MVP voting
+│ ├── cached_details.py
 
-2. **MVP Voting**:
-   - Admin initiates voting for a specific match
-   - System fetches players from winning team
-   - Creates voting UI for tournament participants
-   - Collects and tallies votes in `mvp_votes` table
-   - Displays results after voting period
+│ ├── common_scripts.py
 
-## 4. Discord UI Components
+│ ├── database_connection.py
 
-### 4.1 Discord Embeds
+│ ├── ollama_seeding.py
 
-Embeds are rich message objects that provide structured display of information:
+│ ├── riot_api.py
 
-```python
-embed = discord.Embed(
-    title="Title of the embed",
-    description="Description text",
-    color=discord.Color.blue()  # Sets the embed color
-)
+│ ├── tasks.py
 
-# Add fields
-embed.add_field(name="Field title", value="Field content", inline=True)
+│ └── tournament_runner.py
 
-# Add footer
-embed.set_footer(text="Footer text")
+├── config/ # Configuration and environment variable loading
 
-# Send embed
-await interaction.response.send_message(embed=embed)
-```
+│ └── settings.py
 
-**Key embed uses in the bot**:
-- Team displays in matchmaking
-- Match results presentation
-- MVP voting and results displays
+├── controller/ # Discord bot commands and business logic
 
-### 4.2 UI Components (Views)
+│ ├── admin_controller.py
 
-The bot uses Discord's UI components for interactive elements:
+│ ├── api.py
 
-1. **Select Menus**:
-   - Used for player selection (volunteer sitting out)
-   - Used for MVP voting
+│ ├── callofduty_matchmaking.py
 
-2. **Buttons**:
-   - Used for confirming actions
-   - Used for recording match results
-   - Used for initiating MVP voting
+│ ├── checkin_controller.py
 
-3. **Custom Views**:
-   - `MatchResultView`: UI for recording match outcomes
-   - `VolunteerSelectionView`: UI for selecting players to sit out
-   - `MVPVoteView`: UI for MVP voting
+│ ├── events.py
 
-### 4.3 Component Implementation Pattern
+│ ├── export_import.py
 
-Discord UI components follow this pattern:
-1. Define a class inheriting from `discord.ui.View`
-2. Add UI items (buttons, selects) in `__init__`
-3. Define callback functions for user interactions
-4. Handle state changes and updates in callbacks
-5. Pass the view to message send/edit methods
+│ ├── giveaway_cog.py
 
-## 5. Key Algorithms
+│ ├── league_genetic_match_making.py
 
-### 5.1 Matchmaking Algorithm
+│ ├── league_match_making.py
 
-The system offers two matchmaking approaches:
+│ ├── league_matchmaking_controller.py
 
-1. **Basic Matchmaking** (`match_making.py`):
-   - Sorts players by rank and win rate
-   - Assigns relative performance values based on roles and rank
-   - Builds teams by assigning players to maximize balance
+│ ├── marvelrivals_matchmaking.py
 
-2. **Genetic Matchmaking** (`genetic_match_making.py`):
-   - Uses genetic algorithm to find optimal team compositions
-   - Creates "chromosomes" representing player assignments
-   - Uses fitness function to evaluate team balance
-   - Applies crossover and mutation to find better solutions
-   - Returns best solution after multiple generations
-
-### 5.2 Player Performance Calculation
-
-Player skill and performance is calculated based on:
-1. Player's rank tier (iron through challenger)
-2. Player's division (I-IV)
-3. Role preferences (primary roles weighted higher)
-4. Win rate and historical performance
-5. Optional manual tier override (0-10 scale)
+│ ├── match_results_controller.py
 
-This creates a relative performance value used for team balancing.
-
-## 6. Error Handling
-
-### 6.1 Error Handling Pattern
-
-The codebase uses consistent error handling:
-
-```python
-try:
-    # Operation logic
-except Exception as ex:
-    logger.error(f"Operation failed: {ex}")
-    # User feedback (if applicable)
-```
-
-### 6.2 Database Error Handling
-
-Database operations follow this pattern:
-1. Begin transaction
-2. Execute operations in try block
-3. Catch exceptions and log errors
-4. Commit on success, don't commit on failure
-5. Always close database connection in finally block
-
-## 7. Logging
-
-The system uses Python's standard logging module:
-- Log levels: DEBUG, INFO, WARNING, ERROR
-- Outputs to console and log files
-- Includes timestamps, module info, and log level
-- Configuration defined in `config/settings.py`
-
-## 8. Key Feature Implementation Details
-
-### 8.1 MVP Voting System
-
-1. **Initialization**:
-   - Creates `MVP_Votes` table to track voting
-   - Adds methods for recording and retrieving votes
-
-2. **Voting Flow**:
-   - Admin initiates voting after match result recorded
-   - System identifies winning team members
-   - Creates dropdown UI showing only winning team players
-   - Users vote through dropdown, limited to one vote each
-   - Votes stored with timestamp, voter ID, player ID
-
-3. **Result Calculation**:
-   - Counts votes for each player
-   - Identifies player with most votes as MVP
-   - Displays results in formatted embed
-
-### 8.2 Player Sitting Out Mechanism
-
-For tournaments with players not divisible by team size:
-1. Excess players are selected to "sit out"
-2. Selection can be random, lowest-ranked, or volunteer-based
-3. Players sitting out still receive participation credit
-4. System records these players with `teamUp="participation"`
-
-### 8.3 Role Assignment
-
-1. Players can specify preferred roles in order
-2. System attempts to assign players to primary roles
-3. Performance calculations consider role preference
-4. Players get performance penalty for non-preferred roles
-
-## 9. Configuration System
-
-The bot uses a central configuration file (`config/settings.py`):
-1. Loads environment variables from `.env` file
-2. Defines constants for Discord settings
-3. Configures logging parameters
-4. Sets paths for database and controller files
-
-## 10. Available Commands
-
-### 10.1 Admin Commands
-- **/run_matchmaking** - Create balanced teams based on player data
-- **/swap_team_players** - Swap players between teams for better balance
-- **/display_teams** - Display current teams for a specific match
-- **/announce_teams** - Announce teams to a channel (default: tournament channel)
-- **/record_match_result** - Record which team won a match
-- **/view_player_tier** - View a player's tier/rank information
-- **/adjust_player_tier** - Manually adjust a player's tier value
-- **/reset_player_tier** - Reset a player's manual tier adjustment
-- **/list_players** - View registered players and their information
-- **/player_match_history** - View a player's match history
-
-### 10.2 Player Commands
-- **/signup** - Register for the tournament
-- **/role** - Set role preferences
-- **/vote_mvp** - Vote for the MVP in a match
-
-## 11. Code Extension Guide
-
-### 11.1 Adding a New Command
-
-1. Identify appropriate controller file
-2. Add command using decorator pattern:
-   ```python
-   @app_commands.command(name="command_name", description="Command description")
-   @app_commands.describe(param1="Description of param1")
-   async def command_name(self, interaction: discord.Interaction, param1: str):
-       # Command implementation
-   ```
-
-### 11.2 Team Swapping System
-
-The bot includes a team swapping feature that allows admins to manually swap players between teams:
-
-1. **Command**: `/swap_team_players <match_id>`
-2. **Controller**: `team_swap_controller.py`
-3. **View**: `team_swap_view.py`
-4. **Database Operations**:
-   - Queries match data and player assignments
-   - Updates `Matches` table to swap team assignments (`teamUp` values)
-5. **Interface**:
-   - Displays teams with player information
-   - Provides dropdowns to select players from each team
-   - Calculates team balance before and after swaps
-   - Provides visual feedback of the swap results
-
-### 11.3 Adding a New Database Table
-
-1. Create a new class in `model/dbc_model.py`
-2. Implement `createTable` method with SQL schema
-3. Add necessary query methods
-4. Initialize table creation in `tournament.py`
-
-### 11.4 Creating a New UI Component
-
-1. Create a class inheriting from `discord.ui.View`
-2. Add buttons/selects in constructor
-3. Implement callback methods for interactions
-4. Use the view in command responses
-
-## 12. Sequence Diagrams
-
-### 12.1 Matchmaking Process
-
-```
-Admin                    Bot                        Database
-  |                       |                            |
-  | /run_matchmaking      |                            |
-  |---------------------->|                            |
-  |                       | fetch_players()            |
-  |                       |--------------------------->|
-  |                       |<---------------------------|
-  |                       |                            |
-  |                       | select_players_to_sit_out()|
-  |                       |--------------------------->|
-  |                       |                            |
-  |                       | form_balanced_teams()      |
-  |                       |----------------------------|
-  |                       |                            |
-  |                       | save_match_data()          |
-  |                       |--------------------------->|
-  |                       |<---------------------------|
-  |                       |                            |
-  | match results (embeds)|                            |
-  |<----------------------|                            |
-```
-
-### 12.2 MVP Voting Process
-
-```
-Admin               Bot                  Database             Players
-  |                  |                      |                    |
-  | record_result    |                      |                    |
-  |----------------->|                      |                    |
-  |                  | save_result()        |                    |
-  |                  |--------------------->|                    |
-  |                  |<---------------------|                    |
-  |                  |                      |                    |
-  | start_mvp_voting |                      |                    |
-  |----------------->|                      |                    |
-  |                  | get_winning_team()   |                    |
-  |                  |--------------------->|                    |
-  |                  |<---------------------|                    |
-  |                  |                      |                    |
-  |                  | create_voting_ui()   |                    |
-  |                  |-------------------------------------------->|
-  |                  |                      |                    |
-  |                  |                      |    cast_vote()     |
-  |                  |<--------------------------------------------|
-  |                  | record_vote()        |                    |
-  |                  |--------------------->|                    |
-  |                  |<---------------------|                    |
-  |                  |                      |                    |
-  |                  | tally_results()      |                    |
-  |                  |--------------------->|                    |
-  |                  |<---------------------|                    |
-  | voting_results   |                      |                    |
-  |<-----------------|                      |                    |
-```
-
-### 12.3 Team Swap Process
-
-```
-Admin               Bot                  Database
-  |                  |                      |
-  | swap_team_players|                      |
-  |----------------->|                      |
-  |                  | get_match_data()     |
-  |                  |--------------------->|
-  |                  |<---------------------|
-  |                  |                      |
-  |                  | create_swap_ui()     |
-  |<-----------------|                      |
-  |                  |                      |
-  | select_players   |                      |
-  |----------------->|                      |
-  |                  | swap_players()       |
-  |                  |--------------------->|
-  |                  |<---------------------|
-  |                  |                      |
-  |                  | update_team_display()|
-  |<-----------------|                      |
-  |                  |                      |
-  | confirm/cancel   |                      |
-  |----------------->|                      |
-  |                  | finalize_swap()      |
-  |<-----------------|                      |
-```
-
-### 12.4 Team Display and Announcement Process
-
-```
-Admin               Bot                  Database             Channel
-  |                  |                      |                    |
-  | display_teams    |                      |                    |
-  |----------------->|                      |                    |
-  |                  | get_match_data()     |                    |
-  |                  |--------------------->|                    |
-  |                  |<---------------------|                    |
-  |                  |                      |                    |
-  |                  | create_team_embeds() |                    |
-  |                  |----------------------|                    |
-  |                  |                      |                    |
-  | team display     |                      |                    |
-  |<-----------------|                      |                    |
-  |                  |                      |                    |
-  | announce_teams   |                      |                    |
-  |----------------->|                      |                    |
-  |                  | get_match_data()     |                    |
-  |                  |--------------------->|                    |
-  |                  |<---------------------|                    |
-  |                  |                      |                    |
-  |                  | team announcement    |                    |
-  |                  |-------------------------------------->|
-  |                  |                      |                    |
-  | confirmation     |                      |                    |
-  |<-----------------|                      |                    |
-```
-
-## 13. File Structure Reference
-
-```
-KSU_Esports_Tournament/
-├── common/
-│   ├── cached_details.py      # Caches Discord channels
-│   ├── common_scripts.py      # Shared utility functions
-│   ├── database_connection.py # DB connection singleton
-│   └── riot_api.py            # Riot Games API interface
-├── config/
-│   └── settings.py            # Configuration constants
-├── controller/
-│   ├── admin_controller.py    # Admin commands
-│   ├── checkin_controller.py  # Player check-in 
-│   ├── events.py              # Event handlers
-│   ├── genetic_match_making.py # Genetic algorithm
-│   ├── match_making.py        # Basic matchmaking
-│   ├── match_results_controller.py # Match results
-│   ├── matchmaking_controller.py # Matchmaking commands
-│   ├── mvp_voting_controller.py # MVP voting system
-│   ├── player_signup.py       # Player registration
-│   ├── team_swap_controller.py # Team swapping
-│   └── team_display_controller.py # Team display and announcement
-├── model/
-│   ├── button_state.py        # Button state tracking
-│   ├── checkin_model.py       # Check-in data model
-│   └── dbc_model.py           # Core database models
-├── view/
-│   ├── common_view.py         # Shared UI components
-│   ├── signUp_view.py         # Sign-up UI
-│   ├── match_results_view.py  # Match results UI
-│   ├── mvp_vote_view.py       # MVP voting UI
-│   └── team_swap_view.py      # Team swapping UI
-└── tournament.py              # Main application entry
-```
+│ ├── mvp_voting_controller.py
+
+│ ├── openAi_teamup.py
+
+│ ├── player_commands.py
+
+│ ├── player_management.py
+
+│ ├── player_signup.py
+
+│ ├── seeding_controller.py
+
+│ ├── signup_shared_logic.py
+
+│ ├── stats_controller.py
+
+│ ├── team_display_controller.py
+
+│ ├── team_swap_controller.py
+
+│ ├── teams_controller.py
+
+│ └── tier_management.py
+
+├── docs/ # Internal project documentation
+
+├── integration_testing/ # Integration tests
+
+├── unit_testing/ # Unit tests
+
+├── model/ # Database models and state objects
+
+├── view/ # Discord UI and visual output components
+
+├── .env.template # Environment variable template
+
+├── Dockerfile # Docker build definition
+
+├── README.md # Main repository documentation
+
+├── google_export.md # Google Sheets setup notes
+
+├── requirements.txt # Python dependencies
+
+├── tournament.py # Main application entry point
+
+├── tournament_dbc # SQLite database file
+
+└── web_server.py # Optional web server / viewer
+
+# **System Architecture**
+
+The bot follows a Model-View-Controller (MVC) architecture, separating concerns into discrete layers that can be developed and tested independently.
+
+## **Model Layer**
+
+The model/ directory contains the database schema and data persistence classes. These classes manage player data, game records, check-in state, MVP votes, and giveaway state.
+
+## **View Layer**
+
+The view/ directory contains Discord UI logic and presentation utilities, including buttons, dropdowns, embeds, confirmation views, MVP vote interfaces, and announcement image generation.
+
+## **Controller Layer**
+
+The controller/ directory contains the core command logic. Each feature area is separated into its own cog or controller file, which improves maintainability and allows the bot to scale as features are added.
+
+## **Common Services Layer**
+
+The common/ directory acts as a shared service layer. It includes Riot API calls, database connection helpers, scheduled tasks, caching utilities, seeding logic, and tournament execution logic.
+
+## **Configuration Layer**
+
+The config/settings.py file loads all environment variables, channel settings, API keys, logging configuration, and runtime constants from the .env file at startup.
+
+**Main Modules and Responsibilities**
+
+## **tournament.py**
+
+This is the main entry point of the application. On startup it:
+
+- Configures Discord intents
+- Creates the bot client
+- Initializes the SQLite database and creates required tables
+- Loads all controller cogs dynamically from the controller/ directory
+- Syncs slash commands to configured guilds
+- Handles global command errors
+- Starts the bot runtime
+
+## **config/settings.py**
+
+Centralizes all environment-driven configuration, including:
+
+- Discord token and guild ID
+- Database name
+- Riot API key
+- Google Sheets settings
+- Channel configuration
+- Logging behavior
+- Tier update thresholds
+
+## **common/database_connection.py**
+
+Provides shared access to the application database and supports data operations across all controllers.
+
+## **common/riot_api.py**
+
+Handles all Riot API interactions, including account validation, player data lookup, and rank data retrieval.
+
+## **common/tasks.py**
+
+Implements background scheduled tasks. The primary purpose is automatic player tier updates, governed by environment-configured thresholds:
+
+- MIN_GAME_PLAYED
+- MIN_GAME_WINRATE
+- MAX_GAME_LOST
+
+## **common/tournament_runner.py**
+
+Supports overall tournament execution flow and orchestration logic shared across controllers.
+
+## **web_server.py**
+
+Provides a lightweight server component for viewing or interfacing with tournament data outside the Discord bot context.
+
+**Bot Initialization Flow**
+
+When tournament.py is executed, the bot follows this startup sequence:
+
+- Discord intents are configured.
+- The bot client is created.
+- The SQLite database is initialized; all required tables are created if they do not already exist.
+- The bot connects to Discord.
+- Channels are created or retrieved from cache based on CHANNEL_CONFIG.
+- All controller cog files in the controller/ directory are loaded automatically via dynamic discovery.
+- Slash commands are synced to the configured guilds.
+- The bot is marked as fully initialized and ready for use.
+
+This dynamic loading approach means new feature modules can be added by placing a controller file in the controller/ directory without modifying tournament.py.
+
+**Database Design**
+
+The project uses SQLite as its persistence layer. SQLite is well-suited for the single-server, low-concurrency context of a university esports club. A migration to PostgreSQL would be recommended if the system were scaled to multi-server or high-traffic deployments.
+
+## **Core Database Objects**
+
+### **Player**
+
+Stores player identity and account data: Discord user ID, in-game name, game tag, and administrator status.
+
+### **Game Table (For each game, currently League of Legends, Marvel Rivals, and Call of Duty)**
+
+Stores game-specific statistics and preferences: current tier, rank and division, preferred roles, win and loss counts, win rate, and manual tier override flag.
+
+### **Matches**
+
+Stores match history and participation data: match ID, team assignments, match outcomes, date played, and per-player participation records.
+
+### **MVP Votes**
+
+Stores voting records related to post-match MVP selection, persisted to the database so history remains queryable after Discord messages are deleted.
+
+### **Player Game Info**
+
+Stores additional per-game detail data beyond the core Game record.
+
+### **Check-in and Supporting State**
+
+Additional state is tracked through checkin_model.py, button_state.py, and giveaway_model.py.
+
+## **Database Initialization**
+
+At startup, the application automatically creates all required tables if they do not exist, including: the player table, game table, matches table, match results table, MVP votes table, player game info table, and the Call of Duty player table.
+
+# **Command Reference**
+
+All commands are Discord slash commands unless otherwise noted. Commands are organized by functional area.
+
+## **Player Registration and Basic Player Features**
+
+| **Command**  | **Purpose**                                                            |
+| ------------ | ---------------------------------------------------------------------- |
+| /register    | Registers a user as a player in the tournament system.                 |
+| /stats       | Displays detailed player stats and rank information from the database. |
+| /team_create | Creates a team and invites specified users.                            |
+| /team_leave  | Allows a user to leave their current team.                             |
+
+## **Player Management and Admin Review**
+
+| **Command**   | **Purpose**                                                         |
+| ------------- | ------------------------------------------------------------------- |
+| /list_players | Lists all registered players and their details.                     |
+| /toxicity     | Adds a toxicity point to a specified league of legends player.      |
+| /get_toxicity | Displays the current toxicity total for a league of legends player. |
+
+## **Check-In and Matchmaking**
+
+| **Command**                       | **Purpose**                                                             |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| /simulate_checkins                | Simulates player check-ins for league games testing or admin workflows. |
+| /run_league_matchmaking           | Runs League of Legends matchmaking for checked-in players.              |
+| /insert_codtest_players           | Inserts test players for Call of Duty functionality testing.            |
+| /run_cod_matchmaking              | Runs Call of Duty matchmaking for registered players.                   |
+| /insert_marvelrivals_test_players | Inserts test players for Marvel Rivals functionality testing.           |
+| /run_marvelrivals_matchmaking     | Runs Marvel Rivals matchmaking for registered players.                  |
+
+## **Match Results and MVP Voting**
+
+| **Command**            | **Purpose**                                       |
+| ---------------------- | ------------------------------------------------- |
+| /record_match_result   | Records the outcome of a single match.            |
+| /start_mvp_voting      | Starts MVP voting for a selected match.           |
+| /end_mvp_voting        | Ends an active MVP voting session early.          |
+| /vote_mvp              | Allows a player to cast their MVP vote.           |
+| /view_mvp_results      | Shows MVP vote results for a selected match.      |
+| /list_active_mvp_votes | Lists all currently open voting sessions.         |
+| /view_player_mvps      | Displays the total MVP awards earned by a player. |
+
+## **Google Sheets Integration**
+
+| **Command**     | **Purpose**                                                |
+| --------------- | ---------------------------------------------------------- |
+| /export_players | Exports all player data to a configured Google Sheet.      |
+| /import_players | Imports player data from a Google Sheet into the database. |
+
+## **Seeding and Tournament Start**
+
+| **Command**            | **Purpose**                                 |
+| ---------------------- | ------------------------------------------- |
+| /seed_demo             | Runs the seeding algorithm using demo data. |
+| /seed_from_matchmaking | Builds seeding from matchmaking output.     |
+
+## **Giveaway Command**
+
+The \$giveaway command is the only prefix-style command in the codebase. It accepts a prize description and winner count as parameters. This inconsistency with the slash command interface is a known limitation and is a candidate for future standardization.
+
+| **Command**                      | **Purpose**                                                                |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| \$giveaway (prize, # of winners) | Runs a giveaway. Accepts prize description and winner count as parameters. |
+
+**Matchmaking System**
+
+The matchmaking system is one of the project's primary technical contributions. It goes beyond simple rank sorting to produce genuinely balanced teams.
+
+## **League Matchmaking**
+
+League of Legends matchmaking is handled across three files: league_matchmaking_controller.py, league_match_making.py, and league_genetic_match_making.py. The system supports:
+
+- Role-aware team balancing
+- Player skill tier consideration
+- Sit-out logic when total player counts do not divide evenly
+- Match ID generation and tracking
+- Result storage for future reporting
+
+## **Genetic Algorithm Matchmaking**
+
+The genetic algorithm module searches across a large space of possible team compositions to find the most balanced outcome. It evaluates compositions using a fitness function that considers:
+
+- Player tier and effective skill level
+- Role preference satisfaction
+- Overall team balance
+- Relative performance and win rate
+- Manual tier overrides set by administrators
+
+This approach is significantly more sophisticated than greedy or round-robin assignment and represents a meaningful algorithmic contribution to the project.
+
+## **Multi-Match Support**
+
+The system tracks multiple simultaneous matches using unique match IDs. This allows administrators to independently display, announce, record results for, and start MVP voting on each match without interference.
+
+## **Marvel Rivals Matchmaking & Call of Duty Matchmaking**
+
+These matchmaking systems use a snaking algorithm that ensures the 'value' of each team is as close to fair as possible depending on the selection of sample size.
+
+Marvel Rivals is based on the Tier & Rank of each player. A value is assigned to each player based on those factors. Call of Duty assigns the value of the player equal to their overall KDA.
+
+Once values are assigned, the first team will get the best player, then the next team will pick the next best players until their value is equal or higher. This then repeats until both teams are filled.
+
+# **Check-In Workflow**
+
+The game day check-in process is designed to streamline match formation before matchmaking begins.
+
+## **General Flow**
+
+- Players register with the Discord UI and select their stats/ranks.
+- If the pool is oversized, volunteer sit-out logic is applied.
+- Matchmaking is run on the finalized player pool.
+- Teams are generated, stored, and displayed or announced.
+- Match results are recorded after play.
+- MVP voting begins automatically upon match completion.
+
+This gives the bot a complete tournament or matchmaking lifecycle rather than a set of isolated commands.
+
+# **MVP Voting System**
+
+The MVP system adds a post-match engagement feature to the full tournament flow.
+
+## **MVP Features**
+
+- Start voting for a specific match with /start_mvp_voting
+- End voting manually if needed with /end_mvp_voting
+- Allow players to vote interactively through Discord UI
+- View vote results with /view_mvp_results
+- Track cumulative MVP counts per player with /view_player_mvps
+- List all active voting sessions with /list_active_mvp_votes
+
+Vote records are stored persistently in the database, meaning MVP history can be reviewed at any time even after the Discord messages from the voting session are gone.
+
+# **Toxicity Tracking System**
+
+The repository includes a dedicated toxicity documentation file and command support in player_management.py. This subsystem allows administrators to track negative player behavior over time.
+
+## **Capabilities**
+
+- Increment toxicity points for a player using /toxicity
+- View current toxicity totals using /get_toxicity
+- Integrate behavior data into the broader player management model
+
+This is useful for community moderation and ensuring fair tournament administration across sessions.
+
+**Google Sheets Integration**
+
+The project supports bidirectional synchronization between the bot's SQLite database and a configured Google Sheet.
+
+## **Export**
+
+/export_players exports all player information to a Google Sheet, enabling bulk editing and external record-keeping outside Discord.
+
+## **Import**
+
+/import_players imports spreadsheet data back into the SQLite database, allowing player records edited externally to be synced back into the bot.
+
+## **Required Configuration**
+
+- GOOGLE_SHEET_ID
+- CELL_RANGE
+- Path to the service account credentials JSON file
+
+Supporting documentation is available in google_export.md and docs/export_import.md.
+
+# **AI and Seeding Features**
+
+The project includes AI-assisted and seeding-related modules:
+
+- controller/openAi_teamup.py - OpenAI-assisted team formation
+- common/ollama_seeding.py - Ollama-based experimental seeding
+- controller/seeding_controller.py - Seeding command interface
+
+These components demonstrate the system's extensibility and research potential, moving beyond basic automation into smarter bracket generation and AI-assisted tournament organization.
+
+# **Multi-Game Support**
+
+Although the bot is primarily centered on League of Legends, the repository includes support or groundwork for additional titles:
+
+- League of Legends - Full support across registration, matchmaking, check-in, results, and voting
+- Call of Duty - Matchmaking support with dedicated test player tooling
+- Marvel Rivals - Matchmaking controller scaffold present; in early development
+
+This means the architecture is not locked to a single game and can be expanded into a broader esports management platform over time.

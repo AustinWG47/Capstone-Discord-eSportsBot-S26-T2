@@ -2,6 +2,8 @@
 
 This document provides a comprehensive overview of all tests in the KSU Esports Tournament project, including both unit tests and integration tests.
 
+## This document isnt reflective of current test structure due to immense changes in how commands work as games were added. 
+
 ## System Tests
 
 | Test | Purpose | Steps | Expected Result | Actual Result | Status | Comments |

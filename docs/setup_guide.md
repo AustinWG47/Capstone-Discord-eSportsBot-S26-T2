@@ -1,319 +1,178 @@
-# KSU Esports Tournament Bot - Setup Guide
+## **Setup Guide**
 
-This guide will walk you through setting up and configuring the KSU Esports Tournament Discord bot from scratch. Follow these steps in order to ensure a smooth installation and configuration.
+## **1\. Clone the Repository**
 
-## Table of Contents
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Bot](#running-the-bot)
-- [Docker Deployment](#docker-deployment)
-- [Troubleshooting](#troubleshooting)
+git clone <https://github.com/AustinWG47/Capstone-Discord-eSportsBot-S26-T2.git>
 
-## Prerequisites
+cd Capstone-Discord-eSportsBot-S26-T2
 
-Before installing the bot, make sure you have the following:
+## **2\. Create the Environment File**
 
-1. **Discord Bot Token**
-   - Create a new application at [Discord Developer Portal](https://discord.com/developers/applications)
-   - Navigate to the "Bot" tab and click "Add Bot"
-   - Copy the token for later use
-   - Enable the following Privileged Gateway Intents:
-     - Presence Intent
-     - Server Members Intent
-     - Message Content Intent
+- Copy the provided `.env.template` file to a new file named `.env`:
 
-2. **Riot API Key** (for retrieving player data)
-   - Register at the [Riot Developer Portal](https://developer.riotgames.com/)
-   - Obtain an API key
+macOS / Linux:
 
-3. **Python 3.9+** installed on your system
+cp .env.template .env
 
-4. **Discord Server** with administrator permissions
+Windows:
 
-## Installation
+copy .env.template .env
 
-### Option 1: Standard Installation
+Fill in all required values before proceeding:
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/ksu_Esports_Tournament-.git
-   cd ksu_Esports_Tournament-
-   ```
+```
+# Discord Configuration
+DISCORD_APITOKEN=your_discord_bot_token_here
+DISCORD_GUILD=your_discord_server_id_here
 
-2. **Create a virtual environment**:
-   ```bash
-   python -m venv venv
-   ```
+# Database Configuration
+DATABASE_NAME=tournament.db
 
-3. **Activate the virtual environment**:
-   - Windows:
-     ```
-     venv\Scripts\activate
-     ```
-   - macOS/Linux:
-     ```
-     source venv/bin/activate
-     ```
+# Channel IDs
+TOURNAMENT_CH=tournament_general
+FEEDBACK_CH=feedback_channel
+# CHANNEL_CONFIG must be a valid JSON string with this structure:
+# Format: {"Category": {"channel_name": {"role_key": "RoleName"}, ...}}
+# Use actual role names that exist in your Discord server (like "Admin" or "Moderator")
+# You can use "@everyone" for the default role that everyone can see
+CHANNEL_CONFIG={"Tournament": {"announcements": {"admin": "Admin", "everyone": "@everyone"}, "registration": {"everyone": "@everyone"}, "team-info": {"everyone": "@everyone"}, "results": {"everyone": "@everyone"}, "admin": {"admin": "Admin"}}}
+CHANNEL_PLAYER=t_announcement
+PRIVATE_CH=admin_channel
 
-4. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# Webhook Configuration
+WEBHOOK_URL=your_webhook_url_here
 
-### Option 2: Docker Installation
+# Riot Games API
+API_KEY=your_riot_api_key_here
+API_URL=https://na1.api.riotgames.com/lol
+RIOT_API_KEY=your_riot_api_key_here  # Can be the same as API_KEY
 
-If you prefer using Docker, a Dockerfile is provided in the repository.
+# API Task Control (Optional)
+STOP_API_TASK=false
+START_API_TASK=true
 
-1. **Build the Docker image**:
-   ```bash
-   docker build -t ksu-esports-bot .
-   ```
+# OpenAI Configuration (Optional - for advanced team matchmaking)
+OPEN_AI_KEY=your_openai_api_key_here
+prompt="Your OpenAI prompt for team matchmaking here"
 
-## Configuration
-
-### Setting Up Environment Variables
-
-1. **Create a `.env` file** in the root directory:
-   ```bash
-   touch .env
-   ```
-
-2. **Add the following configuration** to the `.env` file:
-   ```
-   # Discord Settings
-   DISCORD_APITOKEN=your_discord_bot_token
-   DISCORD_GUILD=your_guild_id
-   
-   # Database Settings
-   DATABASE_NAME=ksu_tournament.db
-   
-   # Channel IDs
-   TOURNAMENT_CH=your_tournament_announcements_channel_id
-   CHANNEL_PLAYER=your_player_channel_id
-   CHANNEL_CONFIG=your_config_channel_id
-   PRIVATE_CH=your_private_channel_id
-   FEEDBACK_CH=your_feedback_channel_id
-   
-   # API Settings
-   RIOT_API_KEY=your_riot_api_key
-   API_URL=https://na1.api.riotgames.com/lol
-   
-   # OpenAI Settings (Optional)
-   OPEN_AI_KEY=your_openai_key
-   ```
-
-3. **Replace the placeholder values** with your actual configuration:
-   - `your_discord_bot_token`: The token from the Discord Developer Portal
-   - `your_guild_id`: Your Discord server's ID (Right-click server → Copy ID)
-   - Channel IDs: Right-click on channels → Copy ID
-   - `your_riot_api_key`: Your Riot Games API key
-
-### Bot Permissions
-
-1. **Generate an invite link** using the Discord Developer Portal:
-   - Go to the OAuth2 → URL Generator
-   - Select the following scopes:
-     - bot
-     - applications.commands
-   - Select the following bot permissions:
-     - Administrator (or more granular permissions if preferred)
-
-2. **Invite the bot** to your server using the generated URL
-
-### Database Setup
-
-The bot will automatically create necessary database tables on first run, but you can initialize them manually:
-
-```bash
-python -c "from model.dbc_model import Tournament_DB, Player, Game, Matches, MVP_Votes; db = Tournament_DB(); Player.createTable(db); Game.createTable(db); Matches.createTable(db); MVP_Votes.createTable(db)"
+# Google Sheets Integration (Optional)
+GOOGLE_SHEET_ID=your_google_sheet_id_here
+CELL_RANGE=Sheet1
+LOL_SERVICE_PATH=./service_account.json
 ```
 
-## Running the Bot
+## **3\. Create and Activate a Virtual Environment**
 
-### Starting the Bot
+python -m venv venv
 
-1. **Activate the virtual environment** (if not already activated):
-   - Windows: `venv\Scripts\activate`
-   - macOS/Linux: `source venv/bin/activate`
+Windows:
 
-2. **Run the bot**:
-   ```bash
-   python tournament.py
-   ```
+venv\\Scripts\\activate
 
-### Docker Run
+macOS / Linux:
 
-If you're using Docker:
+source venv/bin/activate
 
-```bash
-docker run --env-file .env -v $(pwd)/data:/app/data ksu-esports-bot
-```
+## **4\. Install Dependencies**
 
-## Bot Commands
+pip install -r requirements.txt
 
-### Admin Commands
+## **5\. Configure Discord Bot Access**
 
-- **/run_matchmaking** - Create balanced teams based on player data
-- **/swap_team_players** - Swap players between teams for better balance
-- **/display_teams** - Display current teams for a specific match
-- **/announce_teams** - Announce teams to a channel (dropdown selection)
-- **/record_match_result** - Record which team won a match
-- **/view_player_tier** - View a player's tier/rank information
-- **/adjust_player_tier** - Manually adjust a player's tier value
-- **/reset_player_tier** - Reset a player's manual tier adjustment
-- **/list_players** - View registered players and their information
-- **/player_match_history** - View a player's match history
+In the Discord Developer Portal: create a bot application, copy the bot token into .env, enable required gateway intents (Message Content, Server Members), and invite the bot to the server with appropriate permissions.
 
-### Player Commands
+- Go to the [Discord Developer Portal](https://discord.com/developers/applications)
+- Create a new application > Bot tab > Reset Token > Copy token
+- Enable "Server Members Intent" under Privileged Gateway Intents
+- Paste the token into `.env` as DISCORD_APITOKEN
 
-- **/signup** - Register for the tournament
-- **/role** - Set role preferences
-- **/vote_mvp** - Vote for the MVP in a match
+## **6\. Obtain Server (Guild) ID**
+- Enable Developer Mode in Discord settings
+- Right-click your server > Copy ID > Add to `.env` as DISCORD_GUILD
 
-## Channel Setup
+## **7\. Configure the Riot API**
 
-Create the following channels in your Discord server:
+Obtain a Riot API development key and add it to the .env file under both API_KEY and RIOT_API_KEY.
+- Visit [Riot Developer Portal](https://developer.riotgames.com)
+- Register for a personal key 
+- Add the key to `.env` as API_KEY
 
-1. **Tournament Announcements** (public)
-   - For announcing teams and tournament information
-   - Set this channel ID as `TOURNAMENT_CH` in your .env file
+## **8\. Configure Ollama (Optional for AI-assisted seeding)**
 
-2. **Player Registration** (public)
-   - Where players can sign up for tournaments
-   - Set this channel ID as `CHANNEL_PLAYER` in your .env file
+**Step 1 - Install Ollama**
 
-3. **Admin Channel** (private)
-   - For tournament administration
-   - Set this channel ID as `PRIVATE_CH` in your .env file
+**Download Ollama:**
 
-4. **Feedback Channel** (public)
-   - For players to provide feedback
-   - Set this channel ID as `FEEDBACK_CH` in your .env file
+<https://ollama.com/download>
 
-## Docker Deployment
+- Install like a normal application
+- Restart your terminal after installation
 
-### Docker Compose
+**Step 2 - Start Ollama**
 
-For easier deployment, you can use Docker Compose. Create a `docker-compose.yml` file:
+Open a terminal / PowerShell and run:
 
-```yaml
-version: '3'
+ollama serve
 
-services:
-  bot:
-    build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - ./data:/app/data
-```
+You should see something like:
 
-Run with:
-```bash
-docker-compose up -d
-```
+Listening on [http://localhost:11434](http://localhost:11434/)
 
-### Updating the Bot
+This means Ollama is running correctly
 
-1. **Pull the latest changes**:
-   ```bash
-   git pull
-   ```
+**Step 3 - Download the AI Model**
 
-2. **Update dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Run:
 
-3. **Restart the bot**:
-   ```bash
-   python tournament.py
-   ```
+ollama run mistral
 
-### Docker Update
+- This will download the **Mistral model** (first time only)
+- After first time download this will run the **Mistral model**
 
-If using Docker:
-```bash
-docker-compose down
-git pull
-docker-compose up -d --build
-```
+**Step 4 - Keep Ollama Running**
 
-## Troubleshooting
+Make sure this is running **before starting the Discord bot**:
 
-### Common Issues
+ollama serve
 
-1. **Bot doesn't respond to commands**
-   - Check if the bot is online in your Discord server
-   - Verify the bot token in the `.env` file
-   - Ensure the bot has the necessary permissions
-   - Check the console output for error messages
+**Step 5 - Verify It Works**
 
-2. **Database errors**
-   - Verify the database path is correct
-   - Check file permissions
-   - Make sure the database file is not corrupted
+Open a browser and go to:
 
-3. **Riot API errors**
-   - Verify your Riot API key is valid and not expired
-   - Check API rate limits
-   - Ensure the region is correctly configured
+[http://localhost:11434](http://localhost:11434/)
 
-4. **Channel not found errors**
-   - Verify channel IDs in the `.env` file
-   - Make sure the bot has access to the channels
-   - Check if the channel format is correct (numeric ID recommended)
+If Ollama is running, you should NOT see a connection error.
 
-### Logs
+**Step 6 - Run Discord Bot**
 
-Check the logs in the `Log/` directory for detailed error information.
+Now start the Discord bot:
 
-### Getting Help
+python tournament.py
 
-If you encounter issues not covered in this guide:
-1. Check the error logs
-2. Consult the [documentation](./design_document.md)
-3. Contact the development team
+## **9\. Configure Google Sheets (Optional)**
 
-## Security Considerations
+Add your Google Sheet ID and service account credentials path to .env to enable the import/export feature.
 
-1. **API Keys**: Keep your `.env` file secure and never commit it to version control
-2. **Bot Permissions**: Use the minimum required permissions for the bot
-3. **Database**: Backup your database regularly
+## **10\. Run the Bot**
 
-## Maintenance
+python tournament.py
 
-1. **Database Backups**:
-   ```bash
-   cp ksu_tournament.db ksu_tournament_backup_$(date +%F).db
-   ```
+On successful startup, the bot logs in, loads all controller cogs, syncs slash commands, and begins accepting input in the configured server.
 
-2. **Log Rotation**:
-   - Archive or delete old logs periodically to save space
+**Deployment**
 
-## Advanced Configuration
+## **Local Deployment**
 
-### Custom Role Colors
+The simplest deployment path is running the application directly with Python after configuring the .env file.
 
-You can customize the role colors in the bot's code:
+## **Docker Deployment**
 
-1. Edit `controller/matchmaking_controller.py` and `controller/team_display_controller.py`
-2. Modify the `role_colors` dictionary to change the emojis/colors for each role
+The repository includes a Dockerfile and dedicated Docker documentation in docs/docker_deployment.md.
 
-### Matchmaking Algorithm Tuning
+### **Build**
 
-The genetic matchmaking algorithm can be tuned to match your tournament's needs:
+docker build -t ksu-esports-bot .
 
-1. Edit `controller/genetic_match_making.py`
-2. Modify the weights in the fitness function:
-   - `team_balance_score` weight (default: 0.7)
-   - `role_matchup_score` weight (default: 0.3)
-3. Adjust population size and generations for different player pool sizes
+### **Run**
 
-## Conclusion
-
-Your KSU Esports Tournament Discord bot should now be fully set up and ready to use. The bot provides a comprehensive set of tools for running League of Legends tournaments, including player registration, team formation, match result tracking, and MVP voting.
-
-For more detailed information about the bot's architecture and functionality, please refer to the [Design Document](./design_document.md).
+docker run --env-file .env ksu-esports-bot
