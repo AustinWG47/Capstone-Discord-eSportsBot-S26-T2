@@ -66,6 +66,33 @@ class Tournament_DB:
 
 
 class Teams(Tournament_DB):
+
+    #added for seeding teams
+    def get_teams_by_game(self, game_name: str):
+        self.cursor.execute("""
+            SELECT t.id, t.team_name, t.game_name, tm.user_id
+            FROM teams t
+            JOIN team_members tm ON t.id = tm.team_id
+            WHERE LOWER(t.game_name) = LOWER(?)
+            ORDER BY t.id
+        """, (game_name,))
+
+        rows = self.cursor.fetchall()
+
+        teams = {}
+
+        for team_id, team_name, game_name, user_id in rows:
+            if team_id not in teams:
+                teams[team_id] = {
+                    "team_name": team_name,
+                    "game_name": game_name,
+                    "players": []
+                }
+
+            teams[team_id]["players"].append(str(user_id))
+
+        return list(teams.values())
+
     def createTable(self):
         # Table for teams
         teams_table_query = """

@@ -7,9 +7,119 @@ from model.dbc_model import Tournament_DB
 from model.dbc_model import Teams
 from common.ollama_seeding import generate_bracket_with_ai
 from common.tournament_runner import TournamentRunner
+import random
 
 logger = settings.logging.getLogger("discord")
 
+teams_db = Teams()
+teams_db.createTable()  
+
+class FakeTeamGameSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.add_item(FakeTeamGameSelect())
+
+
+class FakeTeamGameSelect(discord.ui.Select):
+    def __init__(self):
+        super().__init__(
+            placeholder="Select a game for fake teams",
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(label="Marvel Rivals"),
+                discord.SelectOption(label="Call Of Duty"),
+                discord.SelectOption(label="League Of Legends"),
+            ]
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        game = self.values[0]
+
+        # Rule: team size depends on game
+        team_size = 5 if game == "League Of Legends" else 6
+
+        await interaction.response.defer(ephemeral=True)
+
+        created = []
+        amount = 5  # you can change this fixed amount
+
+        for i in range(amount):
+            owner_id = random.randint(10_000_000, 99_999_999)
+            team_name = f"TestTeam_{i+1}_{game}"
+
+            team_id = teams_db.create_team(owner_id, team_name, game)
+
+            # add fake members
+            for _ in range(team_size - 1):
+                fake_user_id = random.randint(100_000_000, 999_999_999)
+                teams_db.add_member(team_id, fake_user_id)
+
+            created.append(f"{team_name} ({team_size} players)")
+
+        await interaction.followup.send(
+            f"**Game:** {game}\n"
+            f"**Teams created:** {amount}\n\n" +
+            "\n".join(created)
+        )
+
+class SeedGameSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.add_item(SeedGameSelect())
+
+class SeedGameSelect(discord.ui.Select):
+    def __init__(self):
+        super().__init__(
+            placeholder="Select a game to seed teams",
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(label="Marvel Rivals"),
+                discord.SelectOption(label="Call Of Duty"),
+                discord.SelectOption(label="League Of Legends"),
+            ]
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        game = self.values[0]
+
+        await interaction.response.defer(ephemeral=True)
+
+        teams_db = Teams()
+        raw_teams = teams_db.get_all_teams_with_members()
+
+        filtered = teams_db.get_teams_by_game(game)
+
+        if len(filtered) < 2:
+            await interaction.followup.send(f"Not enough teams for **{game}**.")
+            return
+
+        formatted_teams = []
+
+        for team in filtered:
+            players = []
+
+            for user_id in team["players"]:
+                try:
+                    user = await interaction.client.fetch_user(int(user_id))
+                    players.append(user.name)
+                except:
+                    players.append(f"User_{user_id}")
+
+            formatted_teams.append({
+                "team_name": team["team_name"],
+                "players": players
+            })
+
+        bracket = generate_bracket_with_ai(formatted_teams)
+
+        if not bracket or "matches" not in bracket:
+            await interaction.followup.send("Failed to generate bracket.")
+            return
+
+        runner = TournamentRunner(interaction, bracket["matches"])
+        await runner.start()
 
 class Seeding(commands.Cog):
     """Cog for tournament seeding commands"""
@@ -50,42 +160,42 @@ class Seeding(commands.Cog):
             logger.error(f"Seeding demo error: {e}")
             await interaction.followup.send("Error generating demo bracket.")
 
-    # /seed_real
-    @app_commands.command(
-        name="seed_real",
-        description="Generate tournament bracket using real DB teams"
-    )
-    async def seed_real(self, interaction: discord.Interaction):
+    # # /seed_real
+    # @app_commands.command(
+    #     name="seed_real",
+    #     description="Generate tournament bracket using real DB teams"
+    # )
+    # async def seed_real(self, interaction: discord.Interaction):
 
-        try:
-            await interaction.response.defer()
+    #     try:
+    #         await interaction.response.defer()
 
-            teams_db = Teams()
-            teams = teams_db.get_all_teams_with_members()
+    #         teams_db = Teams()
+    #         teams = teams_db.get_all_teams_with_members()
 
-            if not teams:
-                await interaction.followup.send("No teams found in database.")
-                return
+    #         if not teams:
+    #             await interaction.followup.send("No teams found in database.")
+    #             return
 
-            if len(teams) < 2:
-                await interaction.followup.send("Need at least 2 teams.")
-                return
+    #         if len(teams) < 2:
+    #             await interaction.followup.send("Need at least 2 teams.")
+    #             return
 
-            bracket = generate_bracket_with_ai(teams)
+    #         bracket = generate_bracket_with_ai(teams)
 
-            if "error" in bracket:
-                await interaction.followup.send(
-                    f"⚠️ AI returned invalid JSON:\n```{bracket['raw'][:1500]}```"
-                )
-                return
+    #         if "error" in bracket:
+    #             await interaction.followup.send(
+    #                 f"⚠️ AI returned invalid JSON:\n```{bracket['raw'][:1500]}```"
+    #             )
+    #             return
 
-            await interaction.followup.send(
-                f"```json\n{json.dumps(bracket, indent=2)}\n```"
-            )
+    #         await interaction.followup.send(
+    #             f"```json\n{json.dumps(bracket, indent=2)}\n```"
+    #         )
 
-        except Exception as e:
-            logger.error(f"Seeding real error: {e}")
-            await interaction.followup.send("Error generating real bracket.")
+    #     except Exception as e:
+    #         logger.error(f"Seeding real error: {e}")
+    #         await interaction.followup.send("Error generating real bracket.")
 
     # /seed_from_matchmaking
     @app_commands.command(
@@ -209,37 +319,85 @@ class Seeding(commands.Cog):
         finally:
             db.close_db()
 
-    #/start_tournament
+    # #/start_tournament
+    # @app_commands.command(
+    #     name="start_tournament",
+    #     description="Start a tournament with interactive bracket UI"
+    # )
+    # async def start_tournament(self, interaction: discord.Interaction):
+
+    #     try:
+    #         await interaction.response.defer()
+
+    #         teams_db = Teams()
+    #         teams = teams_db.get_all_teams_with_members()
+
+    #         if not teams or len(teams) < 2:
+    #             await interaction.followup.send("Need at least 2 teams.")
+    #             return
+
+    #         bracket = generate_bracket_with_ai(teams)
+
+    #         if "error" in bracket:
+    #             await interaction.followup.send(
+    #                 f"⚠️ AI error:\n```{bracket['raw'][:1500]}```"
+    #             )
+    #             return
+
+    #         runner = TournamentRunner(interaction, bracket["matches"])
+    #         await runner.start()
+
+    #     except Exception as e:
+    #         logger.error(f"Tournament start error: {e}")
+    #         await interaction.followup.send("Error starting tournament.")
+
+    #seed with real teams from DB
+    async def get_teams_for_seeding(bot: commands.Bot):
+        teams_db = Teams()
+        raw_teams = teams_db.get_all_teams_with_members()
+
+        formatted = []
+
+        for team in raw_teams:
+            players = []
+
+            for user_id in team["players"]:
+                try:
+                    user = await bot.fetch_user(int(user_id))
+                    players.append(user.name)
+                except:
+                    players.append(f"User_{user_id}")  # fallback
+
+            formatted.append({
+                "team_name": team["team_name"],
+                "players": players
+            })
+
+        return formatted
+
     @app_commands.command(
-        name="start_tournament",
-        description="Start a tournament with interactive bracket UI"
+        name="seed_teams",
+        description="Generate a bracket using teams from a selected game"
     )
-    async def start_tournament(self, interaction: discord.Interaction):
+    async def seed_teams(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "🎮 Select a game to seed teams:",
+            view=SeedGameSelectView(),
+            ephemeral=True
+        )
 
-        try:
-            await interaction.response.defer()
+    #fake teams
 
-            teams_db = Teams()
-            teams = teams_db.get_all_teams_with_members()
-
-            if not teams or len(teams) < 2:
-                await interaction.followup.send("Need at least 2 teams.")
-                return
-
-            bracket = generate_bracket_with_ai(teams)
-
-            if "error" in bracket:
-                await interaction.followup.send(
-                    f"⚠️ AI error:\n```{bracket['raw'][:1500]}```"
-                )
-                return
-
-            runner = TournamentRunner(interaction, bracket["matches"])
-            await runner.start()
-
-        except Exception as e:
-            logger.error(f"Tournament start error: {e}")
-            await interaction.followup.send("Error starting tournament.")
+    @app_commands.command(
+        name="create_fake_teams",
+        description="Create fake teams using a selected game"
+    )
+    async def create_fake_teams(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "Select a game for fake teams:",
+            view=FakeTeamGameSelectView(),
+            ephemeral=True
+        )
 
 
 #Setup
